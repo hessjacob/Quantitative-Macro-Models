@@ -8,5 +8,5 @@ You are welcome to download and use anything here.
 # File Content
 
 ## Neoclassical Growth (Deterministic and Stochastic)
-- Discretized VFI and Chebyshev polynomial approximation.
+- Discretized VFI to solve the model and Chebyshev polynomial approximation of decision rules to simulate.
 - Computes the solution and does a simulation.
