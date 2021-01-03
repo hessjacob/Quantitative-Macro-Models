@@ -5,7 +5,7 @@ You are welcome to download and use anything here.
 
 # File Content
 
-## Consumption Saving Problem (aka the income flucuation problem)
+## Consumption Saving (aka the income flucuation problem)
 Partial equilibrium solution for the infinitely lived household. 
 
 - Value Function Iteration
