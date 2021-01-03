@@ -6,7 +6,7 @@ You are welcome to download and use anything here.
 # File Content
 
 ## Consumption Saving (aka the income flucuation problem)
-Partial equilibrium solution for the infinitely lived household. 
+Partial equilibrium solution for the infinitely lived household with incomplete markets and idiosyncratic income risk. 
 
 - Value Function Iteration
   * Version 1 -- 2 income states. Solves the household problem with VFI. Runs a simulation for 50,000 households.  
