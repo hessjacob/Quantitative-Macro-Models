@@ -13,7 +13,7 @@ Partial equilibrium solution for the infinitely lived household.
   * Version 2 -- Continuous income process which is discretely approximated up to seven different income states using the Rouwenhorst method. Solves the household    problem with VFI. Runs a simulation for 50,000 households
   
 - Endogenous Grid Method
-  * Version 1 -- 2 income states. Solves the household problem with EGM. Runs a simulation for 50,000 households.  
+  * Version 1 -- 2 income states. Solves the household problem with EGM. Runs a simulation for 50,000 households. Solves for the invariant distribution using an eigenvector method. 
 
 ## Neoclassical Growth (Deterministic and Stochastic)
 - Discretized VFI to solve the model and Chebyshev polynomial approximation of decision rules to simulate.
