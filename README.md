@@ -5,12 +5,12 @@ You are welcome to download and use anything here.
 
 # File Content
 
-## Consumption Saving (aka the income flucuation problem)
+## Consumption Saving in Incomplete Markets (aka the income flucuation problem)
 Partial equilibrium solution for the infinitely lived household with incomplete markets and idiosyncratic income risk. 
 
 - Value Function Iteration
-  * Version 1 -- 2 income states. Solves the household problem with VFI. Runs a simulation for 50,000 households.  
-  * Version 2 -- Continuous income process which is discretely approximated up to seven different income states using the Rouwenhorst method. Solves the household    problem with VFI. Runs a simulation for 50,000 households
+  * Version 1 -- 2 income states. Solves the household problem with VFI. Runs a simulation for 50,000 households. Exogenous borrowing constraint which the user can choose. 
+  * Version 2 -- Continuous income process which is discretely approximated up to seven different income states using the Rouwenhorst method. Solves the household    problem with VFI. Runs a simulation for 50,000 households. Exogenous borrowing constraint which the user can choose. 
   
 - Endogenous Grid Method
   * Version 1 -- 2 income states. Solves the household problem with EGM. Runs a simulation for 50,000 households. Solves for the invariant distribution using an eigenvector method. 
