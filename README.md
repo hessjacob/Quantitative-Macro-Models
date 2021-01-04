@@ -13,7 +13,7 @@ Shared features in all versions is
 1) Runs a markov chain simulation for 50,000 households and the stationary distribution is approximated. 
 2) Exogenous borrowing constraint which the user can choose. 
 
-Household Solution Methods
+Codes and Solution Methods
 
 - Value Function Iteration
   * Version 1 -- 2 income states. 
