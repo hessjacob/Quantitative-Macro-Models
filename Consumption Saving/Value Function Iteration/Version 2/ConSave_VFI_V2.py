@@ -91,7 +91,7 @@ class ConSaveVFIV2:
         # asset grid 
         self.Na = 1000
         self.a_min = self.a_bar
-        self.a_max = 100
+        self.a_max = 80
         self.curv = 3 
 
         # c. simulation
@@ -354,7 +354,7 @@ def u(c, sigma):
 # 2. Household and Value Function Iteration  #
 ##############################################
 
-@njit
+@njit(parallel=True)
 def solve_hh(Nz, 
              Na, 
              tol, 
@@ -387,9 +387,9 @@ def solve_hh(Nz,
     indk = np.copy(VF_old)
     
     # b. Iterate
-    while dist > tol and it<maxit :
+    for it in range(maxit) :
         for iz in range(Nz):
-            for ia in range(Na):
+            for ia in prange(Na):
                 c = (1+ret)*grid_a[ia] + w*grid_z[iz] - grid_a
                 util = u(c, sigma)
                 util[c < 0] = -10e9
@@ -403,8 +403,11 @@ def solve_hh(Nz,
             pol_cons[iz,:] = (1+ret)*grid_a + w*grid_z[iz] - pol_sav[iz,:]
         
         dist = np.linalg.norm(VF-VF_old)
+        
+        if dist < tol :
+            break
+        
         VF_old = np.copy(VF)
-        it += 1
 
 
 
