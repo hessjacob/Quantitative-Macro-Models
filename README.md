@@ -6,7 +6,7 @@ You are welcome to download and use anything here.
 # File Content
 
 ## Consumption Saving in Incomplete Markets (aka the income flucuation problem)
-Partial equilibrium solution (prices are exogenously set) for the infinitely lived household with incomplete markets and idiosyncratic income risk. The versions differ in how the household problem is solved and how the income shock process is specified. These codes are extended to solve in general equilibrium in the Aiyagari section. 
+Partial equilibrium solution (prices are exogenously set) for the infinitely lived household with incomplete markets and idiosyncratic income risk. The versions differ in how the household problem is solved and how the income shock process is specified. These codes are extended to solve for general equilibrium in the Aiyagari section. 
 
 Shared features in all versions is 
 
