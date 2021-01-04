@@ -1,7 +1,7 @@
 # Quantitative-Macro-Models
-This is a collection of code for quantitative macroeconomic models that I have written or modified from someone else. The models in the same folder but written in different coding languages will do the same thing. 
+This is a collection of code for quantitative macroeconomic models that I have written as personal learning exercises. References used can be found in each file.  The models in the same folder but written in different coding languages will do the same thing. 
 
-You are welcome to download and use anything here.
+You are welcome to download and use anything here!
 
 # File Content
 
