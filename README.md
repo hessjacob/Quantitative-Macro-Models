@@ -1,19 +1,34 @@
 # Quantitative-Macro-Models
-This is a collection of code for quantitative macroeconomic models that I have written as personal learning exercises. References used can be found in each file.  The models in the same folder but written in different coding languages will do the same thing. 
+This is a collection of code for quantitative macroeconomic models that I have written as personal learning exercises. References used can be found in each file.  Almost everything is written in python using numba.   
 
 You are welcome to download and use anything here!
 
 # File Content
 
+## Aiyagari 
+General equilibrium in a production economy with incomplete markets. Households are infinitely lived and are exposed to idiosyncratic income risk. The versions differ in how the household problem is solved, how the income shock process is specified and how the stationary distribution is approximated.
+
+**Shared features in all versions is** 
+
+1) Plots the wealth distribution, capital supply and demand and policy functions.
+2) Exogenous borrowing constraint which the user can choose. 
+
+**Codes and Solution Methods**
+
+- Value Function Iteration
+  * Version 1 -- 2 income states. 
+  * Version 2 -- Code will replicate Aiyagari (1994). A slight difference is that the continuous income process which is discretely approximated up to seven different income states using the Rouwenhorst method rather than Tauchen. The Tauchen method is available in the code should the user want an exact replication. 
+  
+
 ## Consumption Saving in Incomplete Markets (aka the income flucuation problem)
 Partial equilibrium solution (prices are exogenously set) for the infinitely lived household with incomplete markets and idiosyncratic income risk. The versions differ in how the household problem is solved and how the income shock process is specified. These codes are extended to solve for general equilibrium in the Aiyagari section. 
 
-Shared features in all versions is 
+**Shared features in all versions is** 
 
 1) Runs a markov chain simulation for 50,000 households and the stationary distribution is approximated. 
 2) Exogenous borrowing constraint which the user can choose. 
 
-Codes and Solution Methods
+**Codes and Solution Methods**
 
 - Value Function Iteration
   * Version 1 -- 2 income states. 
