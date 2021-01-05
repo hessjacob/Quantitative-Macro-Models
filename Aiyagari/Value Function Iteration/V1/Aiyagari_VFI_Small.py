@@ -263,6 +263,18 @@ class AiyagariVFISmall:
             )
             
             k_supply[idx] = np.mean(sim_k_graph[self.ss_sim_burnin:])
+            
+        # 4. plot
+            
+        plt.plot(k_demand,ret_vec)
+        plt.plot(k_supply,ret_vec)
+        plt.plot(k_supply,np.ones(ret_vec.size)*self.rho,'--')
+        plt.title('Capital Market')
+        plt.legend(['Demand','Supply','Supply in CM'])
+        plt.xlabel('Capital')
+        plt.ylabel('Interest Rate')
+        plt.savefig('capital_supply_demand.pdf')
+        plt.show()
 
         return k_demand, k_supply
             
@@ -435,16 +447,6 @@ class AiyagariVFISmall:
                 
                 self.ret_vec = np.linspace(-0.01,self.rho-0.001,8)
                 self.k_demand, self.k_supply = self.graph_supply_demand(self.ret_vec)
-                
-                plt.plot(self.k_demand,self.ret_vec)
-                plt.plot(self.k_supply,self.ret_vec)
-                plt.plot(self.k_supply,np.ones(self.ret_vec.size)*self.rho,'--')
-                plt.title('Capital Market')
-                plt.legend(['Demand','Supply','Supply in CM'])
-                plt.xlabel('Capital')
-                plt.ylabel('Interest Rate')
-                plt.savefig('capital_supply_demand.pdf')
-                plt.show()
                 
     
             t5 = time.time()
@@ -637,7 +639,7 @@ def simulate_MonteCarlo(
     # 4. grid size evaluation
     frac_outside = edge/grid_a.size
     if frac_outside > 0.01 :
-        print('\nIncrease grid size')
+        print('\nIncrease grid size!')
 
     return sim_k, sim_sav, sim_z, sim_c, sim_m
 
