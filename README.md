@@ -1,17 +1,18 @@
 # Quantitative-Macro-Models
-This is a collection of code for quantitative macroeconomic models that I have written as personal learning exercises. References used can be found in each file.  Almost everything is written in python using numba.   
+This is a collection of code for quantitative macroeconomic models that I have written as personal learning exercises. Mostly all the codes involve heterogenous agents and are written in python using numba. References used can be found in each file.    
 
 You are welcome to download and use anything here!
 
 # File Content
 
 ## Aiyagari 
-General equilibrium in a production economy with incomplete markets. Households are infinitely lived and are exposed to idiosyncratic income risk. The versions differ in how the household problem is solved, how the income shock process is specified and how the stationary distribution is approximated.
+General equilibrium in a production economy with incomplete markets. Heterogenous agents are infinitely lived and are exposed to idiosyncratic income risk. The versions differ in how the household problem is solved, how the income shock process is specified and how the stationary distribution is approximated.
 
 **Shared features in all versions is** 
 
 1) Plots the wealth distribution, capital supply and demand and policy functions.
 2) Exogenous borrowing constraint which the user can choose. 
+3) Unless otherwise specified, a monte carlo simulation is used to approximate the stationary distribution
 
 **Codes and Solution Methods**
 
@@ -25,7 +26,7 @@ Partial equilibrium solution (prices are exogenously set) for the infinitely liv
 
 **Shared features in all versions is** 
 
-1) Runs a markov chain simulation for 50,000 households and the stationary distribution is approximated. 
+1) Runs a markov chain simulation for 50,000 heterogenous households and the stationary distribution is approximated. 
 2) Exogenous borrowing constraint which the user can choose. 
 
 **Codes and Solution Methods**
