@@ -1,3 +1,4 @@
+
 """
 Author: Jacob Hess 
 Date: January 2021
@@ -5,9 +6,9 @@ Date: January 2021
 Written in python 3.8 on Spyder IDE.
 
 Description: Finds the stationary equilibrium in a production economy with incomplete markets and idiosyncratic income
-risk as in Aiyagari (1994). Features of the algorith are 1) two income states and a transition matrix eoxgenously set
-2) value function iteration to solve the household problem 3) approximation of the stationary distribution using 
-a monte carlo simulation
+risk as in Aiyagari (1994). Features of the algorithm are 1) discrete approximation up to 7 states of a continuous 
+AR(1) income process using the Rouwenhorst method (Tauchen is also an option in the code) 2) value function iteration 
+to solve the household problem 3) approximation of the stationary distribution using a monte carlo simulation
 
 Aknowledgements: I used notes or pieces of code from the following :
     1) Gianluca Violante's notes (https://sites.google.com/a/nyu.edu/glviolante/teaching/quantmacro)
@@ -16,6 +17,7 @@ Aknowledgements: I used notes or pieces of code from the following :
     
 Required packages: 
     -- Packages from the anaconda distribution. (to install for free: https://www.anaconda.com/products/individual)
+    -- QuantEcon (to install: 'conda install quantecon')
     -- Interpolation from EconForge
        * optimized interpolation routines for python/numba
        * to install 'conda install -c conda-forge interpolation'
@@ -27,6 +29,8 @@ Required packages:
 import time
 import numpy as np
 from numba import njit, prange
+import quantecon as qe
+from scipy.stats import rv_discrete
 from interpolation import interp
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -39,10 +43,10 @@ import seaborn as sns
 # I. Model  #
 ############
 
-class AiyagariVFISmall:
+class AiyagariVFI:
     
     """
-    Class object of the model. AiyagariVFISmall().solve_model() runs everything
+    Class object of the model. AiyagariVFI().solve_model() runs everything
     """
 
     ############
@@ -50,6 +54,10 @@ class AiyagariVFISmall:
     ############
 
     def __init__(self, sigma=2,               #crra coefficient
+                       rho_z = 0.9,           #autocorrelation coefficient
+                       sigma_u = 0.2,         #std. dev. of shocks at annual frequency
+                       Nz = 7,                #number of discrete income states
+                       z_bar = 0,             #constant term in continuous income process (not the mean of the process)
                        a_bar = 0,             #select borrowing limit
                        plott =1,              #select 1 to make plots
                        plot_supply_demand = 1 # select 1 for capital market supply/demand graph
@@ -57,9 +65,11 @@ class AiyagariVFISmall:
         
         #parameters subject to changes
         self.sigma, self.a_bar, self.plott, self.plot_supply_demand  = sigma, a_bar, plott, plot_supply_demand
+        self.rho_z, self.sigma_u, self.Nz, self.z_bar = rho_z, sigma_u, Nz, z_bar 
         
         self.setup_parameters()
         self.setup_grid()
+        self.setup_discretization()
         
 
     def setup_parameters(self):
@@ -74,17 +84,11 @@ class AiyagariVFISmall:
         self.tol_hh = 1e-6  # tolerance for consumption function iterations
         self.maxit_hh = 2000  # maximum number of iterations when finding consumption function in hh problem
        
-        # income
-        self.Nz = 2
-        self.grid_z = np.array([0.5, 1.5])                #productuvity states
-        self.pi = np.array([[3/4, 1/4],[1/4, 3/4]])   #transition probabilities
-
         # asset grid 
         self.Na = 1000
         self.a_min = self.a_bar
-        self.a_max = 40
+        self.a_max = 60
         self.curv = 3 
-
 
         # c. simulation
         self.seed = 123
@@ -108,14 +112,31 @@ class AiyagariVFISmall:
         # a. asset grid
         self.grid_a = self.make_grid(self.a_min, self.a_max, self.Na, self.curv)  #savings grid
 
-        # b. initial distribution of z
+        
+    def setup_discretization(self):
+        
+        # a. discretely approximate the continuous income process 
+        self.mc = qe.markov.approximation.rouwenhorst(self.Nz, self.z_bar, self.sigma_u, self.rho_z)
+        #self.mc = qe.markov.approximation.tauchen(self.rho_z, self.sigma_u, self.z_bar, 3, self.Nz)
+
+        # b. transition matrix and states
+        self.pi = self.mc.P
+        self.grid_z = np.exp(self.mc.state_values)
+        
+        # c. initial distribution of z
         z_diag = np.diag(self.pi ** 1000)
         self.ini_p_z = z_diag / np.sum(z_diag)
-
-        # c. income grid
-        avg_z = np.sum(self.grid_z * self.ini_p_z)
-        self.grid_z = self.grid_z / avg_z  # force mean one
-
+        
+        # d. idiosyncratic shock simulation for each household
+        self.shock_matrix= np.zeros((self.ss_simT, self.ss_simN))
+            
+        # initial z shock drawn from initial distribution
+        random_z = rv_discrete(values=(np.arange(self.Nz),self.ini_p_z),seed=self.seed)
+        self.z0_idx = random_z.rvs(size=self.ss_simN)   #returns shock index, not grid value 
+        
+        # idiosyncratic income shock index realizations for all individuals
+        for n in range(self.ss_simN) :
+            self.shock_matrix[:,n] = self.mc.simulate_indices(self.ss_simT, init=self.z0_idx[n])
         
         
     
@@ -214,7 +235,8 @@ class AiyagariVFISmall:
     def graph_supply_demand(self,ret_vec):
         
         """
-        Plots capital market supply and demand.
+        Returns capital market supply and demand to plot. Note that for some extreme values of ret_vec 
+        the monte carlo simulation might tell you to increase the grid size. You can ignore this here.
         
         *Input
             - ret_vec : vector of interest rates
@@ -239,11 +261,9 @@ class AiyagariVFISmall:
             VF_graph, pol_sav_graph, pol_cons_graph, it_hh_graph = solve_hh(ret_graph, self.Nz, self.Na, self.tol_hh, self.maxit_hh, 
                       self.grid_a, w_graph, self.grid_z, self.sigma, self.beta, self.pi)
             
-            
             # ii. Simulation
             a0 = self.ss_a0 * np.ones(self.ss_simN)
-            z0 = np.zeros(self.ss_simN, dtype=np.int32)
-            z0[np.linspace(0, 1, self.ss_simN) > self.ini_p_z[0]] = 1
+            z0 = self.grid_z[self.z0_idx]
             sim_ret_graph = ret_graph * np.ones(self.ss_simT)
             sim_w_graph = w_graph * np.ones(self.ss_simT)
             
@@ -259,12 +279,10 @@ class AiyagariVFISmall:
                 pol_cons_graph,
                 pol_sav_graph,
                 self.pi,
-                self.seed,
+                self.shock_matrix,
             )
             
             k_supply[idx] = np.mean(sim_k_graph[self.ss_sim_burnin:])
-            
-        # 4. plot
             
         plt.plot(k_demand,ret_vec)
         plt.plot(k_supply,ret_vec)
@@ -273,7 +291,7 @@ class AiyagariVFISmall:
         plt.legend(['Demand','Supply','Supply in CM'])
         plt.xlabel('Capital')
         plt.ylabel('Interest Rate')
-        plt.savefig('capital_supply_demand.pdf')
+        plt.savefig('capital_supply_demand_aiyagari.pdf')
         plt.show()
 
         return k_demand, k_supply
@@ -328,7 +346,7 @@ class AiyagariVFISmall:
             self.pol_cons,
             self.pol_sav,
             self.pi,
-            self.seed,
+            self.shock_matrix
         )
         
         t3 = time.time()
@@ -359,11 +377,10 @@ class AiyagariVFISmall:
     
             # a. initial values for agents
             a0 = self.ss_a0 * np.ones(self.ss_simN)
-            z0 = np.zeros(self.ss_simN, dtype=np.int32)
-            z0[np.linspace(0, 1, self.ss_simN) > self.ini_p_z[0]] = 1
+            z0 = self.grid_z[self.z0_idx]
     
             # b. initial interest rate guess (step 1)
-            ret_guess = 0.02       
+            ret_guess = 0.03       
             
             # We need (1+r)beta < 1 for convergence.
             assert (1 + ret_guess) * self.beta < 1, "Stability condition violated."
@@ -413,26 +430,22 @@ class AiyagariVFISmall:
                 for iz in range(self.Nz):
                     plt.plot(self.grid_a, self.VF[iz,:])
                 plt.title('Value Function')
-                plt.legend(['z='+str(self.grid_z[0]),'z='+str(self.grid_z[1])])
                 plt.xlabel('Assets')
-                plt.savefig('value_function_vfi_aiyagari_small.pdf')
+                plt.savefig('value_function_vfi_aiyagari.pdf')
                 plt.show()
                 
                 for iz in range(self.Nz):
                     plt.plot(self.grid_a, self.pol_sav[iz,:])
                 plt.title("Savings Policy Function")
-                plt.plot([self.a_bar,self.a_max], [self.a_bar,self.a_max],linestyle=':')
-                plt.legend(['z='+str(self.grid_z[0]),'z='+str(self.grid_z[1]),'45 degree line'])
                 plt.xlabel('Assets')
-                plt.savefig('savings_policyfunction_vfi_aiyagari_small.pdf')
+                plt.savefig('savings_policyfunction_vfi_aiyagari.pdf')
                 plt.show()
                 
                 for iz in range(self.Nz):
                     plt.plot(self.grid_a, self.pol_cons[iz,:])
                 plt.title("Consumption Policy Function")
-                plt.legend(['z='+str(self.grid_z[0]),'z='+str(self.grid_z[1])])
                 plt.xlabel('Assets')
-                plt.savefig('consumption_policyfunction_vfi_aiyagari_small.pdf')
+                plt.savefig('consumption_policyfunction_vfi_aiyagari.pdf')
                 plt.show()
                 
                 
@@ -440,7 +453,7 @@ class AiyagariVFISmall:
                 sns.histplot(self.ss_sim_a,  bins=100, stat='density')
                 plt.xlabel('Assets')
                 plt.title('Wealth Distribution')
-                plt.savefig('wealth_distrib_vfi_aiyagari_small.pdf')
+                plt.savefig('wealth_distrib_vfi_aiyagari.pdf')
                 plt.show()
                 
             if self.plot_supply_demand:
@@ -448,6 +461,8 @@ class AiyagariVFISmall:
                 
                 self.ret_vec = np.linspace(-0.01,self.rho-0.001,8)
                 self.k_demand, self.k_supply = self.graph_supply_demand(self.ret_vec)
+                
+                
                 
     
             t5 = time.time()
@@ -564,7 +579,7 @@ def simulate_MonteCarlo(
     pol_cons,
     pol_sav,
     pi,
-    seed,
+    shock_matrix
         ):
     
     """
@@ -575,7 +590,7 @@ def simulate_MonteCarlo(
     *Output
         - sim_k : aggregate capital (total savings in previous period)
         - sim_sav: current savings (a') profile
-        - sim_z: income profile index, 0 for low state, 1 for high state
+        - sim_z: income profile 
         - sim_c: consumption profile
         - sim_m: cash-on-hand profile ((1+r)a + w*z)
     """
@@ -583,11 +598,11 @@ def simulate_MonteCarlo(
     
     
     # 1. initialization
-    np.random.seed(seed)
     sim_sav = np.zeros(simN)
     sim_c = np.zeros(simN)
     sim_m = np.zeros(simN)
-    sim_z = np.zeros(simN, np.int32)
+    sim_z = np.zeros(simN, np.float64)
+    sim_z_idx = np.zeros(simN, np.int32)
     sim_k = np.zeros(simT)
     edge = 0
     
@@ -596,10 +611,7 @@ def simulate_MonteCarlo(
     
     # 3. simulate markov chain
     for t in range(simT):   #time
-
-        draw = np.linspace(0, 1, simN)
-        np.random.shuffle(draw)
-        
+    
         #calculate cross-sectional moments
         if t <= 0:
             sim_k[t] = np.mean(a0)
@@ -610,28 +622,24 @@ def simulate_MonteCarlo(
 
             # a. states 
             if t == 0:
-                z_lag = np.int32(z0[i])
                 a_lag = a0[i]
             else:
-                z_lag = sim_z[i]
                 a_lag = sim_sav[i]
                 
-            # b. shock realization. 0 for low state. 1 for high state.
-            if draw[i] <= pi[z_lag, 1]:     #state transition condition
-                sim_z[i] = 1
-            else:
-                sim_z[i] = 0
+            # b. shock realization 
+            sim_z_idx[i] = shock_matrix[t,i]
+            sim_z[i] = grid_z[sim_z_idx[i]]
                 
             # c. income
-            y = sim_w[t]*grid_z[sim_z[i]]
+            y = sim_w[t]*sim_z[i]
             
             # d. cash-on-hand
             sim_m[i] = (1 + sim_ret[t]) * a_lag + y
             
             # e. consumption path
-            sim_c[i] = sim_m[i] - polsav_interp(a_lag,sim_z[i])
+            sim_c[i] = sim_m[i] - polsav_interp(a_lag,sim_z_idx[i])
             
-            if sim_c[i] == pol_cons[sim_z[i],-1]:
+            if sim_c[i] == pol_cons[sim_z_idx[i],-1]:
                 edge = edge + 1
             
             # f. savings path
@@ -648,5 +656,5 @@ def simulate_MonteCarlo(
 
 #run everything
 
-ge_vfi_small = AiyagariVFISmall()
-ge_vfi_small.solve_model()
+ge_vfi = AiyagariVFI()
+ge_vfi.solve_model()
