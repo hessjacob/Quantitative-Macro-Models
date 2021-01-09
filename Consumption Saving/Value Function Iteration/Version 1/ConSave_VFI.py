@@ -20,6 +20,8 @@ Required packages:
        * optimized interpolation routines for python/numba
        * to install 'conda install -c conda-forge interpolation'
        * https://github.com/EconForge/interpolation.py
+
+Note: If simulation tells you to increase grid size, increase self.a_max in function setup_parameters.
     
 """
 
