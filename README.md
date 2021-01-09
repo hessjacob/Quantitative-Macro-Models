@@ -6,7 +6,7 @@ You are welcome to download and use anything here!
 # File Content
 
 ## Aiyagari 
-General equilibrium in a production economy with incomplete markets. Heterogenous agents are infinitely lived and are exposed to idiosyncratic income risk. The versions differ in how the household problem is solved, how the income shock process is specified and how the stationary distribution is approximated.
+Stationary general equilibrium solution in a production economy with incomplete markets. Heterogenous agents are infinitely lived and are exposed to idiosyncratic income risk. The versions differ in how the household problem is solved, how the income shock process is specified and how the stationary distribution is approximated.
 
 **Shared features in all versions is** 
 
@@ -20,6 +20,8 @@ General equilibrium in a production economy with incomplete markets. Heterogenou
   * Version 1 -- 2 income states. 
   * Version 2 -- Code will replicate Aiyagari (1994). A slight difference is that the continuous income process which is discretely approximated up to seven different income states using the Rouwenhorst method rather than Tauchen. The Tauchen method is available in the code should the user want an exact replication. 
   
+- Endogenous Grid Method
+  * Version 1 -- 2 income states. 
 
 ## Consumption Saving in Incomplete Markets (aka the income flucuation problem)
 Partial equilibrium solution (prices are exogenously set) for the infinitely lived household with incomplete markets and idiosyncratic income risk. The versions differ in how the household problem is solved and how the income shock process is specified. These codes are extended to solve for general equilibrium in the Aiyagari section. 
@@ -37,6 +39,8 @@ Partial equilibrium solution (prices are exogenously set) for the infinitely liv
   
 - Endogenous Grid Method
   * Version 1 -- 2 income states. 
+  * Version 2 -- Continuous income process which is discretely approximated up to seven different income states using the Rouwenhorst method. 
+  * Version 3 -- Based on Alisdair McKay's method (https://alisdairmckay.com/Notes/HetAgents/EGM.html) which is a variant of the prior versions. In addition to approximating the stationary density via monte carlo it also solves for it using an eigenvalue method and plots the comparision of the densities. 
 
 ## Neoclassical Growth (Deterministic and Stochastic)
 - Discretized VFI to solve the model and Chebyshev polynomial approximation of decision rules to simulate.
