@@ -24,7 +24,7 @@ Stationary equilibrium solution in a production economy with incomplete markets.
 
 
 # Consumption Saving in Incomplete Markets (aka the income flucuation problem)
-Partial equilibrium solution (prices are exogenously set) for heterogenous agents that are infinitely lived in incomplete markets and are exposed idiosyncratic income risk. The versions differ in how the household problem is solved and how the income shock process is specified. These codes are extended to solve for general equilibrium in the Aiyagari section. 
+Partial equilibrium solution (prices are exogenously set) for heterogenous agents that are infinitely lived in incomplete markets and are exposed idiosyncratic income risk. The versions differ in how the household problem is solved, how the income shock process is specified and how the stationary distribution is approximated. These codes are extended to solve for general equilibrium in the Aiyagari section. 
 
 **Shared features in all versions is** 
 
