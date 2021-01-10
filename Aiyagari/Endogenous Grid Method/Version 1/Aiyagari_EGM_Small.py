@@ -8,13 +8,12 @@ Description: Finds the stationary equilibrium in a production economy with incom
 risk as in Aiyagari (1994). Features of the algorithm are: 
 
     1) endogenous grid method to solve the household problem 
-    2) two income states and a transition matrix eoxgenously set
+    2) two income states and a transition matrix exogenously set
     3) approximation of the stationary distribution using a monte carlo simulation
 
 Aknowledgements: I used notes or pieces of code from the following :
     1) Gianluca Violante's notes (https://sites.google.com/a/nyu.edu/glviolante/teaching/quantmacro)
-    2) Fabio Stohler (https://github.com/Fabio-Stohler)
-    3) Jeppe Druedahl (https://github.com/JeppeDruedahl) and NumEconCopenhagen (https://github.com/NumEconCopenhagen)
+    2) Jeppe Druedahl (https://github.com/JeppeDruedahl) and NumEconCopenhagen (https://github.com/NumEconCopenhagen)
     
 Required packages: 
     -- Packages from the anaconda distribution. (to install for free: https://www.anaconda.com/products/individual)
@@ -33,6 +32,7 @@ from numba import njit, prange
 from interpolation import interp
 import matplotlib.pyplot as plt
 import seaborn as sns
+plt.style.use('seaborn-whitegrid')
 
 
 

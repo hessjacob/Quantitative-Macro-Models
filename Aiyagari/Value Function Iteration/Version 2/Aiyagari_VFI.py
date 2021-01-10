@@ -8,11 +8,10 @@ Written in python 3.8 on Spyder IDE.
 Description: Finds the stationary equilibrium in a production economy with incomplete markets and idiosyncratic income
 risk as in Aiyagari (1994). Features of the algorithm are: 
 
-1) value function iteration to solve the household problem
-2) discrete approximation up to 7 states of a continuous 
-AR(1) income process using the Rouwenhorst method (Tauchen is also an option in the code)
-3) approximation of the stationary distribution using 
-a monte carlo simulation
+    1) value function iteration to solve the household problem
+    2) discrete approximation up to 7 states of a continuous AR(1) income process using the Rouwenhorst method 
+    (Tauchen is also an option in the code)
+    3) approximation of the stationary distribution using a monte carlo simulation
 
 
 Aknowledgements: I used notes or pieces of code from the following :
@@ -40,7 +39,7 @@ from scipy.stats import rv_discrete
 from interpolation import interp
 import matplotlib.pyplot as plt
 import seaborn as sns
-
+plt.style.use('seaborn-whitegrid')
 
 
 
