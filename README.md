@@ -2,7 +2,7 @@
 This is a collection of code for quantitative macroeconomic models that I have written as personal learning exercises. Mostly all the codes have heterogenous agents and are written in python using numba. References used can be found in each file.    
 
 # Aiyagari 
-Stationary equilibrium solution in a production economy with incomplete markets. Heterogenous agents are infinitely lived and are exposed to idiosyncratic income risk. The versions differ in how the household problem is solved and how the income shock process is specified.
+Stationary equilibrium solution in a production economy with incomplete markets and non aggregate uncertainty. Heterogenous agents are infinitely lived and are exposed to idiosyncratic income risk. The versions differ in how the household problem is solved and how the income shock process is specified.
 
 **Shared features in all versions is** 
 
@@ -39,6 +39,9 @@ Partial equilibrium solution (prices are exogenously set) for heterogenous agent
   * Version 1 -- 2 income states. 
   * Version 2 -- Continuous income process which is discretely approximated up to seven different income states using the Rouwenhorst method. 
   * Version 3 -- Based on Alisdair McKay's method (https://alisdairmckay.com/Notes/HetAgents/EGM.html) which is a variant of the prior versions. In addition to approximating the stationary density via monte carlo it also solves for it using an eigenvalue method and plots the comparision of the densities. 
+  
+# Hopenhayn
+Finds the stationary equilibrium in a dynamic model with heterogenous firms exposed to idiosyncratic productivity levels, no aggregate uncertainty and endogenous entry/exit of firms as in Hopenhayn (1992). It is a partial equilibrium solution as the demand side of the economy is exogenously given and wages are normalized to one. Hopenhayn and Rogerson (1993) extended this to general equilibrium. Here we have an industry with many firms that is competitive and produces a single homoegenous good. Every period incumbent firms choose whether to exit the market. There is free entry into the industry, subject to paying a fixed entry cost. The equilibrium of the industry determines the price and quantity of the good and the amount of labor hired in the industry. The code is solved using value function iteration to solve the firm problem and analytically solves for the stationary distribution. 
 
 # Neoclassical Growth (Deterministic and Stochastic)
 - Social planner solution for complete markets. 
