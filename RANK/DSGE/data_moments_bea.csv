@@ -1,0 +1,10 @@
+Data moments for over 1960 q1 to 2007 q4,,,
+,,,
+,std,AR(1),Corr w Output
+diff Real GDP,0.00907,0.3531,1
+diff real consumption,0.00472,0.27747,0.50817
+diff Real Investment,0.01973,0.23685,0.88342
+diff Labor Hours,0.00783,0.55935,0.48603
+diff real wage,0.00618,0.08756,0.10572
+inflation,0.00593,0.9002,-0.24158
+Fed Funds,0.00816,0.95522,-0.14258
