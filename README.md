@@ -7,11 +7,11 @@ This is a collection of code for quantitative macroeconomic models that I have w
   * Consumption Saving
  
 - Heterogenous firms
- * Hopenhayn
+  * Hopenhayn
  
 - Representative household
- * Neoclassical growth
- * RANK models
+  * Neoclassical growth
+  * RANK models
 
 # Aiyagari 
 Stationary equilibrium solution in a production economy with incomplete markets and no aggregate uncertainty. Heterogenous agents are infinitely lived and are exposed to idiosyncratic income risk. The versions differ in how the household problem is solved and how the income shock process is specified.
