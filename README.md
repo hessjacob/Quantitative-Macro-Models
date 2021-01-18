@@ -3,8 +3,8 @@ This is a collection of code for quantitative macroeconomic models that I have w
 
 **Quick Guide**
 - Heterogenous households
- * Aiyagari
- * Consumption Saving
+  * Aiyagari
+  * Consumption Saving
  
 - Heterogenous firms
  * Hopenhayn
