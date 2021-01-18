@@ -1,6 +1,18 @@
 # Quantitative-Macro-Models
 This is a collection of code for quantitative macroeconomic models that I have written as personal learning exercises. Mostly all the codes have heterogenous agents and are written in python using numba. References used can be found in each file.    
 
+**Quick Guide**
+- Heterogenous households
+ * Aiyagari
+ * Consumption Saving
+ 
+- Heterogenous firms
+ * Hopenhayn
+ 
+- Representative household
+ * Neoclassical growth
+ * RANK models
+
 # Aiyagari 
 Stationary equilibrium solution in a production economy with incomplete markets and no aggregate uncertainty. Heterogenous agents are infinitely lived and are exposed to idiosyncratic income risk. The versions differ in how the household problem is solved and how the income shock process is specified.
 
