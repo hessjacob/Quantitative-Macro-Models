@@ -8,6 +8,7 @@ This is a collection of code for quantitative macroeconomic models that I have w
  
 - Heterogenous firms
   * Hopenhayn
+  * Restuccia and Rogerson
  
 - Representative household
   * Neoclassical growth
@@ -76,3 +77,7 @@ Under the assumption complete markets these models solve for a representative ag
   * Based on Christiano et. al. (2005) which adds more nominal frictions and shocks to better replicate macro data. 
   * My version is calibrated to match data moments but it can easily be estimated using bayesian techniques. 
   * Macro data is cleaned and included
+
+
+# Restuccia and Rogerson
+Replicates Restuccia and Rogerson 2008 which show that resource misallocation across heterogenous firms can have sizeable negative effects on aggregate output and TFP even when policy does not relay on aggregate capital accumulation or price differences. The paper highlights the importance of resource misallocation across firms with different levels or productivity and could potentially explain cross-country differences in output per capita. The code calculates the efficient or benchmark economy and then compares  economies under a policy distortion of either output, capital or labor which reallocates resources among firms through tax/subsidies. Each firm faces its own tax or subdidy. To emphasize the effects, for each tax rate the code finds the subsidy rate that will generate the same aggregate capital stock as the benchmark economy. The focus is on policies that create idiosyncratic distortions to establishment-level decisions and hence cause a reallocation of resources across establishments. 
