@@ -97,7 +97,7 @@ class RestucciaRogerson:
         
         #bisection guesses
         self.w0_guess = 0.5
-        self.w1_guess = 1.5
+        self.w1_guess = 20
         self.tau_s_0 = 0.0
         self.tau_s_1 = 1.2
         
@@ -132,7 +132,7 @@ class RestucciaRogerson:
         
         #In the benchmark economy there is a simple mapping between establishment-level productivity and employment.
         
-        #i. cdf of number of employees, ranging from 1 to 10,000
+        #i. pdf of number of employees, ranging from 1 to 10,000
         df = pd.read_csv('establishment_dist.txt', sep='\t',header=None, names=['upper_s', 'hs'])    #upper_s, (upper range of number of employees) hs, fraction of firm in each group
         df['Hs'] = np.cumsum(df.hs)
 
