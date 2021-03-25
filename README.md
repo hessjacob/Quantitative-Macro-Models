@@ -1,5 +1,5 @@
 # Quantitative-Macro-Models
-This is a collection of code for quantitative macroeconomic models that I have written as personal learning exercises. Mostly all the codes have heterogenous agents and are written in python using numba. References used can be found in each file.    
+This is a collection of code for quantitative macroeconomic models that I have written as personal learning exercises. All the codes, aside from the DSGE block, have heterogenous agents and are written in python using numba. References used can be found in each file.    
 
 **Quick Guide**
 - Heterogenous households
