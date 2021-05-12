@@ -55,25 +55,20 @@ Partial equilibrium solution (prices are exogenously set) for heterogenous agent
   
 # Hopenhayn -- Firm Dynamics
 - Version 1 -- Hopenhayn (1992)
-Finds the stationary equilibrium in a dynamic model with heterogenous firms exposed to idiosyncratic productivity levels, no aggregate uncertainty and endogenous entry/exit of firms as in Hopenhayn (1992). It is a partial equilibrium solution as the demand side of the economy is exogenously given and wages are normalized to one. Hopenhayn and Rogerson (1993) extended this to general equilibrium. Here we have an industry with many firms that is competitive and produces a single homoegenous good. Every period incumbent firms choose whether to exit the market. There is free entry into the industry, subject to paying a fixed entry cost. The equilibrium of the industry determines the price and quantity of the good and the amount of labor hired in the industry. The code is solved using value function iteration to solve the firm problem and analytically solves for the stationary distribution. 
+Finds the stationary equilibrium in a dynamic model with heterogenous firms exposed to idiosyncratic productivity levels, no aggregate uncertainty and endogenous entry/exit of firms as in Hopenhayn (1992). It is a partial equilibrium solution as the demand side of the economy is exogenously given and wages are normalized to one. Hopenhayn and Rogerson (1993) extended this to general equilibrium. In version 2 I embed the neoclassical growth model on the demand side and solve for the general equilibrium solution. Here we have an industry with many firms that is competitive and produces a single homoegenous good. Every period incumbent firms choose whether to exit the market. There is free entry into the industry, subject to paying a fixed entry cost. The equilibrium of the industry determines the price and quantity of the good and the amount of labor hired in the industry. The code is solved using value function iteration to solve the firm problem and analytically solves for the stationary distribution. 
 
-- Version 2 -- Firm Dynamics (Hopenhayn 1992) with the Neoclassical Growth Model and household owns Capital
-The code embeds the standard neoclassical growth model into Hopenhayn (1992) and solves for the stationary equilibrium in which there is continuous 
+- Version 2 -- Firm Dynamics (Hopenhayn 1992) with the Neoclassical Growth Model (household owns capital)
+   
+* The code embeds the standard neoclassical growth model into Hopenhayn (1992) and solves for the stationary equilibrium in which there is continuous 
 entry/exit of firms. The model written here is a loose variant of Veracierto (2001) who was the first (to my knowledge) to write a neoclassical growth model with 
 firm dynamics. The difference between this model and Hopenhayn (1992) and its general equilibrium extension in Hopenhayn and Rogerson (1993) is:
 
 1) Unlike in either model, there is a flexible form of capital that the firm is able to rent from households (therefore they make the investment decision) as is standard in the neoclassical growth model. 
 2) Labor is inelastically supplied by the household and not divisble like in Hopenhayn and Rogerson (1993).
 
-Agents are infinitely lived and ex-ante identical. There are complete markets which allows me to to construct a repersentative household. Firms, on the other hand, 
-are heterogenous in their productivity.The economy considered is similar to the neoclassical growth model except for output, which is produced by a large number of 
-establishments subject to idiosyncratic productivity shocks that induce them to expand and contract over time.There is no aggregate uncertainty. Establishments have access to a decreasing returns to scale technology, pay a one-time fixed cost of entry, and a fixed cost of operation every period. 
+  * Agents are infinitely lived and ex-ante identical. There are complete markets which allows me to to construct a repersentative household. Firms, on the other hand, are heterogenous in their productivity.The economy considered is similar to the neoclassical growth model except for output, which is produced by a large number of establishments subject to idiosyncratic productivity shocks that induce them to expand and contract over time.There is no aggregate uncertainty.Establishments have access to a decreasing returns to scale technology, pay a one-time fixed cost of entry, and a fixed cost of operation every period. 
 
-There is ongoing exogenous and endogenous entry/exit in the steady state. Firms may exogenously die with probability lambda every period. I include this so that 
-there are large productive firms that might suddenly shut down. The timing is as follows. At the beginning of every period firms that receive an exit shock (with 
-probability lambda) leave the market. Remaining firms draw their new productivity and endogenously decide whether to continue or shut down. Those that continue 
-choose the capital and labor factor demands to maximize profits. Meanwhile, there is a mass of potential entrants who draw an intial productivity level and decide 
-whether they should enter the market. Before entering they must pay a one-time fixed entry cost.  
+  * There is ongoing exogenous and endogenous entry/exit in the steady state. Firms may exogenously die with probability lambda every period. I include this so that there are large productive firms that might suddenly shut down. The timing is as follows. At the beginning of every period firms that receive an exit shock leave the market. Remaining firms draw their new productivity and endogenously decide whether to continue or shut down. Those that continue choose the capital and labor factor demands to maximize profits. Meanwhile, there is a mass of potential entrants who draw an intial productivity level and decide whether they should enter the market. Before entering they must pay a one-time fixed entry cost.  
 
 # Neoclassical Growth (Deterministic and Stochastic)
 - Social planner solution for complete markets. 
