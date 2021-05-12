@@ -6,7 +6,7 @@ This is a collection of code for quantitative macroeconomic models that I have w
   * Aiyagari
   * Consumption Saving
  
-- Heterogenous firms
+- Heterogenous firms/Industry dynamics
   * Hopenhayn
   * Restuccia and Rogerson
  
