@@ -57,7 +57,7 @@ Partial equilibrium solution (prices are exogenously set) for heterogenous agent
 **Version 1 -- Hopenhayn (1992)**
 - Finds the stationary equilibrium in a dynamic model with heterogenous firms exposed to idiosyncratic productivity levels, no aggregate uncertainty and endogenous entry/exit of firms as in Hopenhayn (1992). It is a partial equilibrium solution as the demand side of the economy is exogenously given and wages are normalized to one.
 
-*Detailed Description* 
+*Detailed Description*.
 The economy consists of many firms that are competitive and produce a single homoegenous good. Every period incumbent firms choose whether to exit the market. There is free entry into the industry, subject to paying a fixed entry cost. The stationary equilibrium determines the price and quantity of the good and the amount of labor hired. The code is solved using value function iteration to solve the firm problem and analytically solves for the stationary distribution. 
 
 This model lays the basis for heterogenous firm/industry dynamics models. Hopenhayn and Rogerson (1993) extend this to general equilibrium. In version 2 I extend this to general equilibrium by embedding the neoclassical growth model solving for the stationary equilibrium.
@@ -68,7 +68,7 @@ This model lays the basis for heterogenous firm/industry dynamics models. Hopenh
 entry/exit of firms. The model written here is a loose variant of Veracierto (2001) who was the first (to my knowledge) to write a neoclassical growth model with 
 firm dynamics. 
 
-*Detailed Description*
+*Detailed Description*.
 The difference between this model and Hopenhayn (1992) and its general equilibrium extension in Hopenhayn and Rogerson (1993) is:
 
 1) Unlike in either model, there is a flexible form of capital that the firm is able to rent from households (therefore they make the investment decision) as is standard in the neoclassical growth model. 
