@@ -236,22 +236,22 @@ class HopenhaynV2:
             # ii. incumbent firm value function. present discounted value of incumbant
             VF = self.incumbent_firm(wage_guess)[0]
         
-            # iii. entrant firm value function. present discounted value of a potential entrant
-            VF_entrant = self.beta * np.dot(VF.clip(min=0), self.nu) - self.ce
+            # iii. Free entry condition or present discounted value of a potential entrant. 
+            free_entry_cond = self.beta * np.dot(VF.clip(min=0), self.nu) - self.ce
             
             # iv. check if free entry condition is satisfied (present discounted value of a potential entrant equals zero)
-            if np.abs(VF_entrant) < self.tol:
+            if np.abs(free_entry_cond) < self.tol:
                 wage_ss = wage_guess
                 break
             
             # v. update price interval
-            if VF_entrant < 0 :
+            if free_entry_cond < 0 :
                 wmax=wage_guess 
             else:
                 wmin=wage_guess
         
             #altnatively could do
-            #if VF_entrant * VF_entrant_max > 0:
+            #if free_entry_cond * PV_entrant_max  > 0:
             #    wmax = wage_guess
             #else :
             #    wmin = wage_guess
