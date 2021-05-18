@@ -1,5 +1,5 @@
 # Quantitative-Macro-Models
-This is a collection of code for quantitative macroeconomic models that I have written as personal learning exercises. All the codes, aside from the DSGE block, have heterogenous agents and are written in python using numba. References used can be found in each file.    
+This is a collection of code for quantitative macroeconomic models that I have written as personal learning exercises. All the codes, aside from the DSGE block, have heterogenous agents and are written in python using numba. You can find different versions under each topic where I might use different computational methods, increase the scale of the model and/or adjust some key assumptions. I have worked hard to make them readable and very fast so that they might help others who are interested in learning about these topics. References used can be found in each file.    
 
 **Quick Guide**
 - Heterogenous households
@@ -66,7 +66,7 @@ This model lays the basis for heterogenous firm/industry dynamics models. Hopenh
    
 * The code embeds the standard neoclassical growth model into Hopenhayn (1992) and solves for the stationary equilibrium in which there is continuous 
 entry/exit of firms. The model written here is a loose variant of Veracierto (2001) who was the first (to my knowledge) to write a neoclassical growth model with 
-firm dynamics. 
+firm dynamics. I solve the household problem using value function iteration and approximate the stationary productivity distribution of firms by fixed point iteration.
 
 *Detailed Description*.
 The difference between this model and Hopenhayn (1992) and its general equilibrium extension in Hopenhayn and Rogerson (1993) is:
@@ -77,6 +77,15 @@ The difference between this model and Hopenhayn (1992) and its general equilibri
 Agents are infinitely lived and ex-ante identical. There are complete markets which allows me to to construct a repersentative household. Firms, on the other hand, are heterogenous in their productivity.The economy considered is similar to the neoclassical growth model except for output, which is produced by a large number of establishments subject to idiosyncratic productivity shocks that induce them to expand and contract over time.There is no aggregate uncertainty.Establishments have access to a decreasing returns to scale technology, pay a one-time fixed cost of entry, and a fixed cost of operation every period. 
 
 There is ongoing exogenous and endogenous entry/exit in the steady state. Firms may exogenously die with probability lambda every period. I include this so that there are large productive firms that might suddenly shut down. The timing is as follows. At the beginning of every period firms that receive an exit shock leave the market. Remaining firms draw their new productivity and endogenously decide whether to continue or shut down. Those that continue choose the capital and labor factor demands to maximize profits. Meanwhile, there is a mass of potential entrants who draw an intial productivity level and decide whether they should enter the market. Before entering they must pay a one-time fixed entry cost.  
+
+**Version 3 -- Firm Dynamics (Hopenhayn 1992) and the Neoclassical Growth Model (firm owns capital)**
+
+* The code embeds the standard neoclassical growth model into Hopenhayn (1992) and solves for the stationary equilibrium in which there is continuous 
+entry/exit of firms. The difference with this and version 2 is that the firm owns the capital stock and makes the investment decision. The model is a simplified general equilbrium extension of Clementi and Palazzo (2019). I solve the household problem using value function iteration and approximate the stationary joint distribution of firms by fixed point iteration on the law of motion.
+
+*Detailed Description*. This version differs from the version 2 model as follows:
+1) The firm owns the capital stock and makes capital investment decisions. I allow for reversible investment (the firm can consume from its capital stock).
+2) There are now two state variables (tfp and capital). 
 
 # Neoclassical Growth (Deterministic and Stochastic)
 - Social planner solution for complete markets. 
