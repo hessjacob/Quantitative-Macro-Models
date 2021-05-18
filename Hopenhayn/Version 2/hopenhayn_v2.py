@@ -32,23 +32,18 @@ class HopenhaynV2:
     # 1. setup #
     ############
 
-    def __init__(self, beta=0.96,             #annual discount factor 
-                       alpha = 0.85/3,       #capital share
-                       gamma = 0.85*2/3,     #labor share
-                       delta = 0.08,         #annual depreciation rate
-                       cf = 1,              #fixed cost
+    def __init__(self, cf = 1,              #fixed cost
                        ce = 10,             #entry cost
                        rho_z = 0.6,           #autocorrelation coefficient
                        sigma_z = 0.2,         #std. dev. of shocks
                        Nz = 20,                #number of discrete income states
                        z_bar = 0,          #constant term in continuous income process (not the mean of the process)
-                       lambdaa = 0.05,       #exogenous exit rate
                        plott =1,              #select 1 to make plots
                        ):
         
         #parameters subject to changes
-        self.beta, self.alpha, self.gamma, self.delta, self.cf, self.ce, self.rho_z  = beta, alpha, gamma, delta, cf, ce, rho_z
-        self.sigma_z, self.Nz, self.z_bar, self.lambdaa, self.plott = sigma_z, Nz, z_bar, lambdaa, plott 
+        self.cf, self.ce, self.Nz, self.rho_z  = cf, ce, Nz, rho_z
+        self.sigma_z, self.z_bar, self.plott = sigma_z, z_bar, plott 
         
         self.setup_parameters()
         self.setup_grid()
@@ -57,12 +52,20 @@ class HopenhaynV2:
     
     def setup_parameters(self):
         
-        # a. incumbent firm soluton  
-        self.tol = 1e-8                         #difference tolerance
-        self.maxit = 2000                       #maximum value function iterations
+        # a. model parameters
+        self.beta = 0.9615        #annual discount factor 
+        self.alpha = 0.85/3       #capital share
+        self.gamma = 0.85*2/3     #labor share
+        self.delta = 0.08         #annual depreciation rate
+        self.lambdaa = 0.05       #exogenous exit rate
+        self.psi = 0.5            #capital adjustment parameter
         self.xx = 1 - self.alpha - self.gamma   #for factor demand solution
         
-        # b. real interest and rental rates
+        # b. incumbent firm soluton  
+        self.tol = 1e-8                         #difference tolerance
+        self.maxit = 2000                       #maximum value function iterations
+        
+        # c. hh solution
         self.interest_rate = 1/self.beta - 1
         self.rental_rate = self.interest_rate + self.delta
         
@@ -349,7 +352,7 @@ class HopenhaynV2:
         
         self.average_firm_size = self.N_ss / np.sum(self.stat_dist)
         self.exit_rate = 1 - np.sum((1-self.lambdaa)*np.dot(self.pi.T, self.stat_dist_hat)*self.pol_enter)/np.sum(self.stat_dist_hat) 
-        #self.exit_rate = self.m_star / np.sum(self.stat_dist)    #alternative calculation
+        #self.exit_rate_alt = self.m_star / np.sum(self.stat_dist)    #alternative calculation
         
         # h. plot
         
