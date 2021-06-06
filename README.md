@@ -68,6 +68,8 @@ This model lays the basis for heterogenous firm/industry dynamics models. Hopenh
 entry/exit of firms. The model written here is a loose variant of Veracierto (2001) who was the first (to my knowledge) to write a neoclassical growth model with 
 firm dynamics. I solve the household problem using value function iteration and approximate the stationary productivity distribution of firms by fixed point iteration.
 
+* This is a frictionless economy.
+
 *Detailed Description*.
 The difference between this model and Hopenhayn (1992) and its general equilibrium extension in Hopenhayn and Rogerson (1993) is:
 
@@ -82,6 +84,8 @@ There is ongoing exogenous and endogenous entry/exit in the steady state. Firms 
 
 * The code embeds the standard neoclassical growth model into Hopenhayn (1992) and solves for the stationary equilibrium in which there is continuous 
 entry/exit of firms. The difference with this and version 2 is that the firm owns the capital stock and makes the investment decision. The model is a simplified general equilbrium extension of Clementi and Palazzo (2019). I solve the household problem using value function iteration and approximate the stationary joint distribution of firms by fixed point iteration on the law of motion.
+
+* The only friction in this economy is capital adjustment costs.
 
 *Detailed Description*. This version differs from the version 2 model as follows:
 1) The firm owns the capital stock and makes capital investment decisions. I allow for reversible investment (the firm can consume from its capital stock).
