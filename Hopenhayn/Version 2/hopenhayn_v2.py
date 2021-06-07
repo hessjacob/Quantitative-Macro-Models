@@ -330,8 +330,7 @@ class HopenhaynV2:
         self.stat_dist_cdf = np.cumsum(self.stat_dist_pdf)
         
         # f. calculate employment distributions
-        
-        self.dist_emp = (self.pol_n * self.stat_dist_pdf)/ np.sum(self.pol_n * self.stat_dist_pdf)
+        self.dist_emp = (self.pol_n * self.stat_dist)
         
         # invariant employment distribution by percent
         self.dist_emp_pdf = self.dist_emp / np.sum(self.dist_emp)

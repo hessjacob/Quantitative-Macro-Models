@@ -270,10 +270,10 @@ class HopenhaynV3:
         else:
             print("\nCalculating aggergate statistics...")
         
-        self.dist_emp = (self.pol_n * self.stat_dist_pdf)/ np.sum(self.pol_n * self.stat_dist_pdf)
+        self.dist_emp = (self.pol_n * self.stat_dist)
         
-        # invariant employment distribution by percent
-        self.dist_emp_pdf = np.sum(self.pol_n * self.stat_dist_pdf, axis=0) / np.sum(np.sum(self.pol_n * self.stat_dist_pdf,axis=0))
+        # invariant marginal (capital) employment distribution by percent
+        self.dist_emp_pdf = np.sum(self.dist_emp, axis=0) / np.sum(np.sum(self.dist_emp,axis=0))
         self.dist_emp_cdf = np.cumsum(self.dist_emp_pdf)
         
         

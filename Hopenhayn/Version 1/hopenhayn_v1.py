@@ -2,8 +2,7 @@
 """
 Author: Jacob Hess
 
-First Version: January 2021
-Updated: May 2021
+Date: January 2021
 
 Description: Replicates Hopenhayn (1992) which finds the stationary equilibrium in a firm dynamics model. I follow the 
 algorithm laid out by Gianluca Violante's and Chris Edmond's notes where I solve the incumbant firm problem with value 
@@ -21,7 +20,6 @@ Required packages:
 """
 
 
-
 import time
 import numpy as np
 import numpy.linalg as la
@@ -31,10 +29,10 @@ import seaborn as sns
 sns.set(style='whitegrid')
 
 
-class HopenhaynV1:
+class Hopenhayn:
     
     """
-    Class object of the model. HopenhaynV1().solve_model() runs everything
+    Class object of the model. Hopenhayn().solve_model() runs everything
     """
 
     ############
@@ -260,20 +258,16 @@ class HopenhaynV1:
         # a. Find the optimal price using bisection (algo steps 1-3)
         self.price_ss = self.find_equilibrium_price()
         
-        
         # b. Use the equilibrium price to recover incumbent firm solution
         self.VF, self.firm_profit, self.firm_output, self.pol_n, self.pol_enter, self.exit_cutoff = self.incumbent_firm(self.price_ss)
-        
         
         # c. Invariant (productivity) distribution with endogenous exit. Here assume m=1 which 
         #will come in handy in the next step.
         self.distrib_stationary_0 = self.solve_invariant_distribution(1, self.pol_enter)
         
-        
         # d. Rather than iterating on market clearing condition to find the equilibrium mass of entrants (m_star)
         # we can compute it analytically (Edmond's notes ch. 3 pg. 25)
         self.m_star = self.D / ( np.dot( self.distrib_stationary_0, self.firm_output) )
-        
         
         # e. Rescale to get invariant (productivity) distribution (mass of plants)
         self.distrib_stationary = self.m_star * self.distrib_stationary_0
@@ -283,14 +277,12 @@ class HopenhaynV1:
         self.pdf_stationary = self.distrib_stationary / self.total_mass
         self.cdf_stationary = np.cumsum(self.pdf_stationary)
         
-        
         # f. calculate employment distributions
-        self.distrib_emp = (self.pol_n * self.pdf_stationary)/ np.sum(self.pol_n * self.pdf_stationary)
+        self.distrib_emp = (self.pol_n * self.distrib_stationary)
         
         # invariant employment distribution by percent
         self.pdf_emp = self.distrib_emp / np.sum(self.distrib_emp)
         self.cdf_emp = np.cumsum(self.pdf_emp)
-        
         
         # g. calculate statistics
         self.total_employment = np.dot(self.pol_n, self.distrib_stationary)
@@ -307,7 +299,7 @@ class HopenhaynV1:
             plt.title('Incumbant Firm Value Function')
             plt.legend(['Value Function', 'Exit Threshold='+str(self.exit_cutoff.round(2)),'VF <= 0'])
             plt.xlabel('Productivity level')
-            #plt.savefig('value_func_hopehaynv1.pdf')
+            #plt.savefig('value_func_hopehayn.pdf')
             plt.show()
          
             plt.plot(self.grid_z,self.pdf_stationary)
@@ -316,7 +308,7 @@ class HopenhaynV1:
             plt.xlabel('Productivity level')
             plt.ylabel('Density')
             plt.legend(['Share of Firms','Share of Employment'])
-            #plt.savefig('pdf_hopehaynv1.pdf')
+            #plt.savefig('pdf_hopehayn.pdf')
             plt.show()
             
             plt.plot(self.grid_z,self.cdf_stationary)
@@ -325,7 +317,7 @@ class HopenhaynV1:
             plt.xlabel('Productivity level')
             plt.ylabel('Cumulative Sum')
             plt.legend(['Share of Firms','Share of Employment'])
-            #plt.savefig('cdf_hopehaynv1.pdf')
+            #plt.savefig('cdf_hopehayn.pdf')
             plt.show()
             
             #employment share pie charts 
@@ -341,7 +333,7 @@ class HopenhaynV1:
             
             plt.pie(self.share_firms, labels=['<20','21<50','51<100','101<500','501<'], autopct="%.1f%%")
             plt.title('Size of Firms by Number of Employees')
-            #plt.savefig('firm_size_hopehaynv1.pdf')
+            #plt.savefig('firm_size_hopehayn.pdf')
             plt.show()
             
             self.share_employment = np.zeros(len(employed)+1)
@@ -354,7 +346,7 @@ class HopenhaynV1:
             
             plt.pie(self.share_employment, labels=['<20','21<50','51<100','101<500','501<'], autopct="%.1f%%")
             plt.title('Employment Share by Firm Size')
-            #plt.savefig('employment_share_hopehaynv1.pdf')
+            #plt.savefig('employment_by_firm_size_hopehayn.pdf')
             plt.show()
             
             #these pie sharts show that most firms are small, few large firms. In the second it says most people 
@@ -373,8 +365,8 @@ class HopenhaynV1:
         
 #run everything
 
-h_v1=HopenhaynV1()
-h_v1.solve_model()
+hvfi=Hopenhayn()
+hvfi.solve_model()
 
 
 
