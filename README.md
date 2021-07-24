@@ -98,7 +98,7 @@ Social planner solution for the neoclassical growth model with inelastic labor s
 
 1) The deterministic files conduct a perfect foresight transition to the steady state.
 2) The stochastic files generate a markov chain simulation and evaluate the accuracy of the solution by computing the euler equation errors.
-3) The interpolation scheme the transitions and simulations interpolates the decision rules with either cubic interpolation or by approximating them with chebyshev polynomials and OLS.
+3) The interpolation scheme (chosen by the user) for the transitions and simulations interpolates the decision rules with either cubic interpolation or by approximating them with chebyshev polynomials and OLS.
 
 **Codes and Solution Methods**
 - Value Function Iteration
