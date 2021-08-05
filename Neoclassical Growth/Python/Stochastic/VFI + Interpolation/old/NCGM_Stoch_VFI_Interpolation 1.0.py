@@ -387,7 +387,7 @@ class ncgmVFIandINTERPOLATE:
             
             
             #iv. calculate euler error
-            euler_error_sim[t] = 1 - self.u_prime_inv(self.beta*avg_RHS)/c
+            euler_error_sim[t] = 1 - (self.beta*self.u_prime_inv(avg_RHS))/c
     
     
         # v. transform to log_10 and get max and average
@@ -457,7 +457,7 @@ class ncgmVFIandINTERPOLATE:
         
         # ii. calculate euler error at all grid points
         for iz in range(self.Nz):       #current productivity
-            for ik in range(self.Nk_fine):   #current capital
+            for ik in range(self.Nk):   #current capital
             
                 #initialize
                 avg_RHS = 0
@@ -490,20 +490,19 @@ class ncgmVFIandINTERPOLATE:
                     
                     
                 #calculate euler error
-                euler_error[iz,ik] = 1 - self.u_prime_inv(self.beta*avg_RHS)/c
+                euler_error[iz,ik] = 1 - (self.beta*self.u_prime_inv(avg_RHS))/c
         
         
         
         # iii.transform euler error with log_10 and take max
         euler_error = np.log10(np.abs(euler_error))
         max_error =  np.amax(np.amax(euler_error, axis=1))
-        avg_error = np.mean(euler_error)
         
         t2_fine = time.time()
         print(f'\tError calculation time elapsed: {t2_fine-t1_fine:.2f} seconds')
         
         
-        return euler_error, max_error, avg_error
+        return euler_error, max_error
 
 
 
@@ -550,7 +549,7 @@ class ncgmVFIandINTERPOLATE:
         # c. calculate euler equation error
         
         if self.full_euler_error:
-            self.euler_error, self.max_error, self.avg_error = self.ee_error()
+            self.euler_error, self.max_error = self.ee_error()
             
         t3 = time.time()
         
@@ -566,7 +565,7 @@ class ncgmVFIandINTERPOLATE:
             plt.plot(self.grid_k, self.VF.T)
             plt.title('Value Function')
             plt.xlabel('Capital Stock')
-            #plt.savefig('Figures Solution/vf_ncgm_vfi_interpolate.pdf')
+            #plt.savefig('Figures Solution/vf_ncgm_vfi.pdf')
             plt.show()
             
             plt.plot(self.grid_k, self.pol_kp.T)
@@ -574,20 +573,19 @@ class ncgmVFIandINTERPOLATE:
             plt.xlabel('Capital Stock')
             plt.plot([self.k_min,self.k_max], [self.k_min,self.k_max],linestyle=':')
             plt.legend(['Policy Function', '45 Degree Line'])
-            #plt.savefig('Figures Solution/capital_policyfun_ncgm_vfi_interpolate.pdf')
+            #plt.savefig('Figures Solution/capital_policyfun_ncgm_vfi.pdf')
             plt.show()
     
             plt.plot(self.grid_k, self.pol_cons.T)
             plt.title('Consumption Policy Function')
             plt.xlabel('Capital Stock')
-            #plt.savefig('Figures Solution/consumption_policyfun_ncgm_vfi_interpolate.pdf')
+            #plt.savefig('Figures Solution/consumption_policyfun_ncgm_vfi.pdf')
             plt.show()
             
             if self.full_euler_error:
                 plt.plot(self.grid_k_fine, self.euler_error.T)
                 plt.title('Log10 Euler Equation Error')
                 plt.xlabel('Capital Stock')
-                #plt.savefig('Figures Solution/log10_euler_error_ncgm_vfi_interpolate.pdf')
                 plt.show()
             
             # ii. simulation figures
@@ -597,28 +595,28 @@ class ncgmVFIandINTERPOLATE:
                 plt.plot(np.arange(self.simT), self.k_ss*np.ones(self.simT), linestyle='--')
                 plt.title('Dynamics: Capital Stock')
                 plt.xlabel('Time')
-                #plt.savefig('Figures Simulation/capital_sim_ncgm_vfi_interpolate.pdf')
+                #plt.savefig('Figures Transition/capital_transition_ncgm_vfi.pdf')
                 plt.show()
                 
                 plt.plot(np.arange(self.simT), self.sim_cons)
                 plt.plot(np.arange(self.simT), self.c_ss*np.ones(self.simT), linestyle='--')
                 plt.title('Dynamics: Consumption')
                 plt.xlabel('Time')
-                #plt.savefig('Figures Simulation/consumption_sim_ncgm_vfi_interpolate.pdf')
+                #plt.savefig('Figures Transition/consumption_transition_ncgm_vfi.pdf')
                 plt.show()
                 
                 plt.plot(np.arange(self.simT), self.sim_output)
                 plt.plot(np.arange(self.simT), self.y_ss*np.ones(self.simT), linestyle='--')
                 plt.title('Dynamics: Output')
                 plt.xlabel('Time')
-                #plt.savefig('Figures Simulation/output_sim_ncgm_vfi_interpolate.pdf')
+                #plt.savefig('Figures Transition/output_transition_ncgm_vfi.pdf')
                 plt.show()
                 
                 plt.plot(np.arange(self.simT), self.sim_inv)
                 plt.plot(np.arange(self.simT), self.i_ss*np.ones(self.simT), linestyle='--')
                 plt.title('Dynamics: Investment')
                 plt.xlabel('Time')
-                #plt.savefig('Figures Simulation/investment_sim_ncgm_vfi_interpolate.pdf')
+                #plt.savefig('Figures Transition/investment_transition_ncgm_vfi.pdf')
                 plt.show()
                 
             
@@ -629,8 +627,7 @@ class ncgmVFIandINTERPOLATE:
         print("Log10 Euler Equation Error Evaluation")
         print("-----------------------------------------")
         if self.full_euler_error:
-            print(f"\nFull Grid Evalulation: Max Error  = {self.max_error:.2f}")
-            print(f"Full Grid Evalulation: Max Error: Average Error = {self.avg_error:.2f}")
+            print(f"Full Grid Evalulation: Max Error  = {self.max_error:.2f}")
         
         if self.simulate:
             print(f"\nSmiluation: Max Error  = {self.max_error_sim:.2f}")
