@@ -24,7 +24,6 @@ Required packages:
 
 import time
 import numpy as np
-from numpy import linalg as la
 from scipy import interpolate
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -45,10 +44,21 @@ class ncgmVFIandINTERPOLATE:
             #parameters subject to changes
             self.plott = plott      #select 1 to make plots
             self.transition = transition        # select 1 to do transition
-            self.interpolate_type = interpolate_type    #interpolation for transition. options: 'cubic', 'chebyshev'
+            self.interpolate_type = interpolate_type    #interpolation for transition. options: 'cubic', 'chebyshev'. if transition=0 then this option is automatically ignored.
             
             self.setup_parameters()
             self.setup_grid()
+            
+            # warnings
+             
+            if self.plott != 1 and self.plott != 0:
+                raise Exception("Plot option incorrectly entered: Choose either 1 or 0.")
+            
+            if self.transition != 1 and self.transition != 0:
+                raise Exception("Transition option incorrectly entered: Choose either 1 or 0.")
+                
+            if self.interpolate_type != 'chebyshev' and self.interpolate_type != 'cubic':
+                raise Exception("Interpolation for transition option incorrectly entered: Choose either 'chebyshev' or 'cubic'")
             
     def setup_parameters(self):
 
@@ -189,8 +199,8 @@ class ncgmVFIandINTERPOLATE:
                 # iv. consumption policy function 
                 pol_cons[ik] = self.grid_c[np.argmax(RHS)]
             
-            # v. calculate distance from previous iteration
-            dist = la.norm(VF-VF_old)
+            # v. calculate supnorm
+            dist = np.abs(VF-VF_old).max()
            
             if dist < self.tol :
                 break
@@ -297,7 +307,7 @@ class ncgmVFIandINTERPOLATE:
     
         self.VF, self.pol_kp, self.pol_cons, self.it = self.vfi_det()
         
-        if self.it < self.maxit:
+        if self.it < self.maxit-1:
             print(f"Convergence in {self.it} iterations.")
         else : 
             print("No convergence.")

@@ -45,12 +45,12 @@ class ncgmVFI:
     # 1. setup #
     ############
 
-    def __init__(self, plott = 1, simulate=1, sim_interpolate_type = 'chebyshev', full_euler_error = 1):              
+    def __init__(self, plott = 1, simulate=1, sim_interpolate_type = 'chebyshev', full_euler_error = 0):              
             
             #parameters subject to changes
             self.plott = plott  #select 1 to make plots
             self.simulate = simulate  #select 1 to run simulation
-            self.sim_interpolate_type = sim_interpolate_type  #interpolation during simulation. options: 'chebyshev, 'cubic'
+            self.sim_interpolate_type = sim_interpolate_type  #interpolation during simulation. options: 'chebyshev, 'cubic'. if simulate=0 this option is automatically ignored.
             self.full_euler_error = full_euler_error  #select 1 to calculate euler error on entire grid
             
             self.setup_parameters()
@@ -60,6 +60,22 @@ class ncgmVFI:
             self.params = self.sigma, self.beta, self.delta, self.alpha, self.grid_k, self.grid_z, \
                 self.Nz, self.Nk, self.pi, self.maxit, self.tol
 
+             # warnings
+             
+            if self.plott != 1 and self.plott != 0:
+                raise Exception("Plot option incorrectly entered: Choose either 1 or 0.")
+            
+            if self.simulate != 1 and self.simulate != 0:
+                raise Exception("Simulate option incorrectly entered: Choose either 1 or 0.")
+                
+            if self.sim_interpolate_type != 'chebyshev' and self.sim_interpolate_type != 'cubic':
+                raise Exception("Interpolation for simulation option incorrectly entered: Choose either 'chebyshev' or 'cubic'")
+                
+            if self.full_euler_error != 1 and self.full_euler_error != 0:
+                raise Exception("Euler error full grid evaluation option incorrectly entered: Choose either 1 or 0.")
+                
+                
+                
     def setup_parameters(self):
 
         # a. model parameters
@@ -341,7 +357,7 @@ class ncgmVFI:
         
         _, pol_kp_fine, pol_cons_fine, it = vfi(params_fine)
         
-        if it < self.maxit:
+        if it < self.maxit-1:
             print(f"\tConvergence in {self.it} iterations.")
         else : 
             print("\tNo convergence.")
@@ -443,7 +459,7 @@ class ncgmVFI:
     
         self.VF, self.pol_kp, self.pol_cons, self.it = vfi(self.params)
         
-        if self.it < self.maxit:
+        if self.it < self.maxit-1:
             print(f"Convergence in {self.it} iterations.")
         else : 
             print("No convergence.")
@@ -547,7 +563,7 @@ class ncgmVFI:
         print("-----------------------------------------")
         if self.full_euler_error:
             print(f"\nFull Grid Evalulation: Max Error  = {self.max_error:.2f}")
-            print(f"Full Grid Evalulation: Max Error: Average Error = {self.avg_error:.2f}")
+            print(f"Full Grid Evalulation: Average Error = {self.avg_error:.2f}")
         
         if self.simulate:
             print(f"\nSmiluation: Max Error  = {self.max_error_sim:.2f}")
@@ -632,8 +648,8 @@ def vfi(params):
             # consumption policy function
             pol_cons[iz,:] = grid_z[iz]*grid_k**alpha + (1-delta)*grid_k - pol_kp[iz,:]
        
-        # iv. calculate distance from previous iteration
-        dist = la.norm(VF-VF_old)
+        # iv. calculate supnorm
+        dist = np.abs(VF-VF_old).max()
        
         if dist < tol :
             break

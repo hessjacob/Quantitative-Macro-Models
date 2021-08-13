@@ -18,7 +18,6 @@ Required packages:
 
 import time
 import numpy as np
-from numpy import linalg as la
 from scipy import interpolate
 from numba import njit, prange
 import matplotlib.pyplot as plt
@@ -41,12 +40,25 @@ class ncgmVFI:
             #parameters subject to changes
             self.plott = plott      #select 1 to make plots
             self.transition = transition        # select 1 to do transition
-            self.interpolate_type = interpolate_type    #interpolation for transition. options: 'cubic', 'chebyshev'
+            self.interpolate_type = interpolate_type    #interpolation for transition. options: 'cubic', 'chebyshev'. if transition=0 then this option is automatically ignored.
             
             self.setup_parameters()
             self.setup_grid()
         
             self.params = self.sigma, self.beta, self.delta, self.alpha, self.grid_k, self.Nk, self.maxit, self.tol
+            
+            # warnings
+             
+            if self.plott != 1 and self.plott != 0:
+                raise Exception("Plot option incorrectly entered: Choose either 1 or 0.")
+            
+            if self.transition != 1 and self.transition != 0:
+                raise Exception("Transition option incorrectly entered: Choose either 1 or 0.")
+                
+            if self.interpolate_type != 'chebyshev' and self.interpolate_type != 'cubic':
+                raise Exception("Interpolation for transition option incorrectly entered: Choose either 'chebyshev' or 'cubic'")
+                
+                
 
     def setup_parameters(self):
 
@@ -217,7 +229,7 @@ class ncgmVFI:
     
         self.VF, self.pol_kp, self.pol_cons, self.it = vfi_det(self.params)
         
-        if self.it < self.maxit:
+        if self.it < self.maxit-1:
             print(f"Convergence in {self.it} iterations.")
         else : 
             print("No convergence.")
@@ -381,8 +393,8 @@ def vfi_det(params):
             
             pol_kp[ik] = grid_k[np.argmax(RHS)]    #policy function for how much to save
        
-        # iv. calculate distance from previous iteration
-        dist = la.norm(VF-VF_old)
+        # iv. calculate su-norm
+        dist = np.abs(VF-VF_old).max()
        
         if dist < tol :
             break
