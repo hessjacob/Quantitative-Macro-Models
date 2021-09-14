@@ -1,11 +1,11 @@
+
 """
 Author: Jacob Hess 
-First Version: January 2021
-Revised: September 2021
+First Version: December 2020
+This Version: September 2021
 
 Description: This code solves the consumption/saving problem (aka the income flucuation problem) for the infinitely 
-household in partial equilibrium using the endogenous grid method. The continuous income process is discretely approximated 
-using the Rouwenhorst method.
+household in partial equilibrium using value function iteration. 
 
 To find the stationary distribution one can choose from three methods: 
 
@@ -26,34 +26,31 @@ Aknowledgements: I wrote the algorithms using the following resources :
     
 Required packages: 
     -- Packages from the anaconda distribution. (to install for free: https://www.anaconda.com/products/individual)
-    -- QuantEcon (to install: 'conda install quantecon')
     -- Interpolation from EconForge
        * optimized interpolation routines for python/numba
        * to install 'conda install -c conda-forge interpolation'
        * https://github.com/EconForge/interpolation.py
 
-Note 1: If simulation tells you to increase grid size, increase self.sav_max in function setup_parameters.
+Note 1: If simulation tells you to increase grid size, increase self.a_max in function setup_parameters.
+Note 2: Be advised that by default there are many grid points which makes the eigenvector method quite slow (calculation up to 30 seconds using
+grid_a, 2 minutes using grid_a_fine). This is due to numpy.linalg.eig.
 """
 
 
 import time
 import numpy as np
 from numba import njit, prange
-from scipy.stats import rv_discrete
 from interpolation import interp
-import quantecon as qe
 import matplotlib.pyplot as plt
 import seaborn as sns
 sns.set(style='whitegrid')
-
-
 
 
 #############
 # I. Model  #
 ############
 
-class ConSaveEGM:
+class ConSaveVFIsmall:    
 
     ############
     # 1. setup #
@@ -61,8 +58,8 @@ class ConSaveEGM:
 
     def __init__(self, a_bar = 0,              #select borrowing limit
                        plott =1,               #select 1 to make plots
-                       simulate =0,            #select 1 to run simulation (if distribution_method = 'monte carlo' simulate is automatically set to 1 )
-                       full_euler_error = 0,        #select to compute euler_error for entire state space
+                       simulate = 0,            #select 1 to run simulation (if distribution_method = 'monte carlo' simulate is automatically set to 1 )
+                       full_euler_error = 0,        #select 1 to compute euler_error for entire state space
                        distribution_method = 'discrete' #Approximation method of the stationary distribution. 
                                                        #Options: 'discrete', 'eigenvector', 'monte carlo' or 'none'
                        ):
@@ -73,21 +70,19 @@ class ConSaveEGM:
 
         self.setup_parameters()
         self.setup_grid()
-        self.setup_discretization()
         
         #pack parameters for jitted functions
         
-        self.params_egm = self.ret, self.w, self.beta, self.pi, self.grid_z, self.sigma, self.maxit, self.tol
+        self.params_vfi = self.ret, self.w, self.beta, self.pi, self.grid_z, self.sigma, self.maxit, self.tol
         
         if distribution_method == 'discrete':
-            self.params_discrete = self.grid_sav, self.Nz, self.pi, self.pi_stat, self.maxit, self.tol
-                
+            self.params_discrete = self.grid_a, self.grid_a_fine, self.Nz, self.pi, self.pi_stat, self.maxit, self.tol
             
         if self.simulate ==1 or self.distribution_method == 'monte carlo':
-            self.params_sim = self.a0, self.ret, self.w, self.simN, self.simT, self.grid_z, self.grid_sav, \
-                self.sigma, self.beta, self.pi, self.shock_history
+            self.params_sim = self.a0, self.z0, self.ret, self.w, self.simN, self.simT, self.grid_z, self.grid_a, \
+                self.sigma, self.beta, self.pi, self.seed
                 
-        #warnings 
+        # warnings
         
         # We need (1+r)beta < 1 for convergence.
         assert (1 + self.ret) * self.beta < 1, "Stability condition violated."
@@ -107,41 +102,39 @@ class ConSaveEGM:
             
         if self.full_euler_error != 1 and self.full_euler_error != 0:
             raise Exception("Euler error full grid evaluation option incorrectly entered: Choose either 1 or 0.")
-        
-        
-
+            
+            
+            
     def setup_parameters(self):
 
         # a. model parameters
         self.sigma = 2               #crra coefficient
         self.beta = 0.95  # discount factor
         self.rho = (1-self.beta)/self.beta #discount rate
-        
-        # AR(1) income process
-        self.Nz = 7                 #number of discrete income states
-        self.z_bar = 0             #constant term in continuous income process (not the mean of the process)
-        self.rho_z = 0.9    #autocorrelation coefficient
-        self.sigma_z = 0.2         #std. dev. of income process at annual frequency
     
         # prices 
         self.w=1 
         self.ret=0.04
         
-        
         # b. iteration parameters
         self.tol = 1e-6  # tolerance for iterations
         self.maxit = 2000  # maximum number of vf iterations
         
-        
         # c. hh solution
 
-        # savings grid
-        self.Ns = 200
-        self.sav_min = self.a_bar
-        self.sav_max = 60
-        self.curv = 3
+        # income
+        self.Nz = 2
+        self.grid_z = np.array([0.5, 1.5])                #productuvity states
+        self.pi = np.array([[3/4, 1/4],[1/4, 3/4]])   #transition probabilities
+
+        # asset grid 
+        self.Na = 1000
+        self.a_min = self.a_bar
+        self.a_max = 60
+        self.curv = 3 
         
-        
+        if self.distribution_method == 'discrete' or self.distribution_method == 'eigenvector' or self.full_euler_error :
+            self.Na_fine = self.Na*3
         
         # d. simulation
         if self.simulate or self.distribution_method == 'monte carlo':
@@ -154,45 +147,34 @@ class ConSaveEGM:
 
 
 
+
     def setup_grid(self):
 
-        # a. savings (or end-of-period assets) grid
-        self.grid_sav = self.make_grid(self.sav_min, self.sav_max, self.Ns, self.curv)  
+        # a. asset grid
+        self.grid_a = self.make_grid(self.a_min, self.a_max, self.Na, self.curv)  #asset grid
         
-            
-
+       # b. stationary distribution of markov chain
+        self.pi_stat = self.stationary_mc(self.pi)
         
-    def setup_discretization(self):
-        
-        # a. discretely approximate the continuous income process 
-        self.mc = qe.markov.approximation.rouwenhorst(self.Nz, self.z_bar, self.sigma_z, self.rho_z)
-        #self.mc = qe.markov.approximation.tauchen(self.rho_z, self.sigma_z, self.z_bar, 3, self.Nz)
-
-        # b. transition matrix and states
-        self.pi = self.mc.P
-        self.pi_stat = self.mc.stationary_distributions.T
-        self.grid_z = np.exp(self.mc.state_values)
-
-        # c. initial distribution of z
+        # c. initial distribution of z for simulation and ensure produtcity grid sums to one
         z_diag = np.diag(self.pi ** 1000)
         self.ini_p_z = z_diag / np.sum(z_diag)
         
-        # d. income shock sequence for each individual for simulation
+        avg_z = np.sum(self.grid_z * self.ini_p_z)
+        self.grid_z = self.grid_z / avg_z  # force mean one
+        
+        # d. initial income shock drawn for each individual from initial distribution
         if self.simulate or self.distribution_method == 'monte carlo':
-         
-            # draw income shocks for each individual
-            self.shock_history= np.zeros((self.simT, self.simN))
-            
-             # initial income shock drawn for each individual from initial distribution
-            random_z = rv_discrete(values=(np.arange(self.Nz),self.ini_p_z), seed=self.seed)
-            z0_idx = random_z.rvs(size=self.simN)
-            
-            for n in range(self.simN) :
-                seed_sim = self.seed + n 
-                
-                self.shock_history[:,n] = self.mc.simulate_indices(self.simT, init=z0_idx[n], random_state=seed_sim)       
+            self.z0 = np.zeros(self.simN, dtype=np.int32)
+            self.z0[np.linspace(0, 1, self.simN) > self.ini_p_z[0]] = 1
         
-        
+        # e. finer grid for density approximation and euler error
+        if self.distribution_method == 'discrete' or self.distribution_method == 'eigenvector' or self.full_euler_error :
+            self.grid_a_fine = self.make_grid(self.a_min, self.a_max, self.Na_fine, self.curv)  
+
+
+
+
 
     #######################
     # 2. helper functions #
@@ -213,12 +195,38 @@ class ConSaveEGM:
             grd[i] = min_val + scale*((i)/(num - 1)) ** curv
         
         return grd
-    
-    
+
+
+
+    def stationary_mc(self, pi):
+        """
+        Returns the stationary/ergodic distribution of the markov chain.
+        
+        *Input
+            - pi: markov chain transition matrix
+            
+        *Output
+            - stataionary distribution of the markov chain
+        """
+        
+        p = np.copy(pi)  #create a copy of pi 
+        nrows,ncols = p.shape
+        for i in range(nrows):
+            p[i,i] = p[i,i]-1
+        
+        q = p[:,0:nrows-1]
+        # appends column vector
+        q = np.c_[q,np.ones(nrows)]  
+        x = np.zeros(nrows-1)
+        # appends element in row vector
+        x = np.r_[x,1]
+
+        return np.dot(x, np.linalg.inv(q))
 
     
-    
-    
+
+
+
     ######################################
     # 3. Euler Equation Error Analysis  #
     #####################################
@@ -237,62 +245,79 @@ class ConSaveEGM:
         
                 
         # a. initialize
-        euler_error = np.zeros((self.Nz, self.Ns))
+        euler_error = np.zeros((self.Nz, self.Na_fine))
         
-        # b. helper functions
+        # b. helper function
         u_prime = lambda c : c**(-self.sigma)
         
         u_prime_inv = lambda x : x ** (-1/self.sigma)
         
-        # c. calulate euler equation error
+        
+        
+        # c. vfi again with finer grid
+        print("\nEuler Error Calculation: Solving household problem on finer grid...")
+        
+        t0_fine = time.time() #start the clock
+        
+        _, pol_sav_fine, pol_cons_fine, it_hh_fine = solve_hh(self.grid_a_fine, self.params_vfi)
+        
+        if it_hh_fine < self.maxit-1:
+            print(f"\tValue function convergence in {it_hh_fine} iterations.")
+        else : 
+            raise Exception("\tNo value function convergence.")
+            
+        t1_fine = time.time()
+        print(f'\tHousehold problem time elapsed: {t1_fine-t0_fine:.2f} seconds')
+        
+        
+        
+        # d. calulate euler equation error
        
         print("Euler Error Calculation: Evaluating the errors...")
         
         # i. calculate euler error at all fine grid points
         
-        t0_ee = time.time()     #start the clock
-        
         for i_z in range(self.Nz):       #current productivity
-            for i_s in range(self.Ns):   #current asset
+            for i_a in range(self.Na_fine):   #current asset
             
-                c = self.pol_cons[i_z, i_s]        #current consumption
-                a_plus = self.pol_sav[i_z, i_s]     #savings 
+                c = pol_cons_fine[i_z, i_a]        #current consumption
+                a_plus = pol_sav_fine[i_z, i_a]     #savings 
                 avg_marg_c_plus = 0
                 
                 if a_plus == 0:
-                    euler_error[i_z, i_s] = np.nan
-                
+                    euler_error[i_z, i_a] = np.nan
+                    
                 else:
                     for i_zz in range(self.Nz):      #next period productivity
                     
-                        c_plus = (1 + self.ret) * a_plus + self.w*self.grid_z[i_zz] - interp(self.grid_sav, self.pol_sav[i_zz,:], a_plus)
+                        c_plus = (1 + self.ret) * a_plus + self.w*self.grid_z[i_zz] - interp(self.grid_a_fine, pol_sav_fine[i_zz,:], a_plus)
                             
                         #expectation of marginal utility of consumption
                         avg_marg_c_plus += self.pi[i_z,i_zz] * u_prime(c_plus)
-                        
+                    
                     #compute euler error
-                    euler_error[i_z, i_s] = 1 - u_prime_inv(self.beta*(1+self.ret)*avg_marg_c_plus) / c
-                
-        
-        # ii. transform euler error with log_10 and take max
+                    euler_error[i_z, i_a] = 1 - u_prime_inv(self.beta*(1+self.ret)*avg_marg_c_plus) / c
+                    
+       
+        # ii. transform euler error with log_10. take max and average
         euler_error = np.log10(np.abs(euler_error))
         max_error =  np.nanmax(np.nanmax(euler_error, axis=1))
         avg_error = np.nanmean(euler_error) 
         
-        t1_ee = time.time()
-        print(f'\tError calculation time elapsed: {t1_ee-t0_ee:.2f} seconds')
+        t2_fine = time.time()
+        print(f'\tError calculation time elapsed: {t2_fine-t1_fine:.2f} seconds')
         
         
         return euler_error, max_error, avg_error
     
     
-        
     
-    #####################################################
+    ####################################################
     # 4. Stationary Distribution: Eigenvector Method   #
     ####################################################
     
-    def eigen_stationary_density_egm(self):
+    
+    def eigen_stationary_density(self):
         """
         Solve for the exact stationary density. First constructs the Nz*Ns by Nz*Ns transition matrix Q(a',z'; a,z) 
         from state (a,z) to (a',z'). Then obtains the eigenvector associated with the unique eigenvalue equal to 1. 
@@ -309,44 +334,43 @@ class ConSaveEGM:
         """
         
         # a. initialize transition matrix
-        Q = np.zeros((self.Nz*self.Ns, self.Nz*self.Ns))
+        Q = np.zeros((self.Nz*self.Na_fine, self.Nz*self.Na_fine))
         
         # b. interpolate and construct transition matrix 
         for i_z in range(self.Nz):    #current productivity 
-            for i_s, s0 in enumerate(self.grid_sav):    #savings grid point
+            for i_a, a0 in enumerate(self.grid_a_fine):    
                 
                 # i. interpolate
-                s_intp = np.interp(s0, self.a_star[i_z,:], self.grid_sav)    #use np.interp instead of interp to deal with 'division by zero' problem.
+                a_intp = interp(self.grid_a, self.pol_sav[i_z,:], a0)
                 
-                #take the grid index to the right. s_intp lies between grid_sav_[j-1] and grid_sav[j].
-                j = np.sum(self.grid_sav <= s_intp)  
+                #take the grid index to the right. a_intp lies between grid_sav_fine[j-1] and grid_sav_fine[j]. 
+                j = np.sum(self.grid_a_fine <= a_intp) 
                 
+                    
                 #less than or equal to lowest grid value
-                if s_intp <= self.grid_sav[0]:
+                if a_intp <= self.grid_a_fine[0]:
                     p = 0
                     
                 #more than or equal to greatest grid value
-                elif s_intp >= self.grid_sav[-1]:
+                elif a_intp >= self.grid_a_fine[-1]:
                    p = 1
                    j = j-1 #since right index is outside the grid make it the max index
                    
                 #inside grid
                 else:
-                   p = (s0 - self.a_star[i_z, j-1]) / (self.a_star[i_z, j] - self.a_star[i_z, j-1])
+                   p = (a_intp-self.grid_a_fine[j-1]) / (self.grid_a_fine[j]-self.grid_a_fine[j-1])
                     
                 # ii. transition matrix
-                ns = i_z*self.Ns    #minimum row index
+                na = i_z*self.Na_fine    #minimum row index
                 
                 for i_zz in range(self.Nz):     #next productivity state
-                    ms = i_zz * self.Ns     #minimum column index
+                    ma = i_zz * self.Na_fine     #minimum column index
                     
-                    Q[ns + i_s, ms + j]= p * self.pi[i_z, i_zz]
-                    Q[ns + i_s, ms + j - 1] = (1.0-p)* self.pi[i_z, i_zz]
+                    Q[na + i_a, ma + j]= p * self.pi[i_z, i_zz]
+                    Q[na + i_a, ma + j - 1] = (1.0-p)*self.pi[i_z, i_zz]
         
         # iii. ensure that the rows sum up to 1
-        assert np.allclose(Q.sum(axis=1), np.ones(self.Nz*self.Ns)), "Transition matrix error: Rows do not sum to 1"
-        
-        
+        assert np.allclose(Q.sum(axis=1), np.ones(self.Nz*self.Na_fine)), "Transition matrix error: Rows do not sum to 1"
         
         # c. get the eigenvector 
         eigen_val, eigen_vec = np.linalg.eig(Q.T)    #transpose Q for eig function.
@@ -372,24 +396,24 @@ class ConSaveEGM:
         # d. obtain stationary density from stationary eigenvector
         
         # i. reshape
-        stationary_pdf = eigen_vec_stat.reshape(self.Nz,self.Ns)
+        stationary_pdf = eigen_vec_stat.reshape(self.Nz,self.Na_fine)
         
         # ii. stationary distribution by percent 
         stationary_pdf=stationary_pdf/np.sum(np.sum(stationary_pdf,axis=0)) 
         
-        return stationary_pdf, Q 
+        return stationary_pdf, Q
+
+        
     
-    
-    
-    
-    
-    #####################
+
+
+
+    ######################
     # 5. Main Function  #
     #####################
-
-
-    def solve_model(self):
     
+    def solve_model(self):
+
         """
         Runs the entire model.
         """    
@@ -397,35 +421,32 @@ class ConSaveEGM:
         t0 = time.time()    #start the clock
         
         
-        # a. solve household problem 
         
+        # a. solve household problem
         print("\nSolving household problem...")
         
-        self.pol_cons, self.pol_sav, self.a_star, self.it_hh = solve_hh(self.grid_sav, self.params_egm)
-        
-        #set any values below borrowing constraint to sav_min
-        self.a_star[self.a_star<self.grid_sav[0]] = self.grid_sav[0]    #I leave this outside of solve_hh because numba no python mode can't read this.    
+        self.VF, self.pol_sav, self.pol_cons, self.it_hh = solve_hh(self.grid_a, self.params_vfi)
         
         if self.it_hh < self.maxit-1:
-            print(f"Policy function convergence in {self.it_hh} iterations.")
+            print(f"Value function convergence in {self.it_hh} iterations.")
         else : 
-            raise Exception("No policy function convergence.")
+            raise Exception("No value function function convergence.")
         
         t1 = time.time()
         print(f'Household problem time elapsed: {t1-t0:.2f} seconds')
+            
         
         
+        # b. stationary distribution
         
-        # b. approximate the stationary distribution
-        
-        # stationary density 
+        # discrete approximation
         if self.distribution_method == 'discrete':
             
             print("\nStationary Distribution Solution Method: Discrete Approximation and Forward Iteration on Density Function")
             print("\nComputing...")
             
             # i. approximate stationary density
-            self.stationary_pdf, self.it_pdf = discrete_stationary_density_egm(self.pol_sav, self.a_star, self.params_discrete)
+            self.stationary_pdf, self.it_pdf = discrete_stationary_density(self.pol_sav, self.params_discrete)
             
             if self.it_pdf < self.maxit-1:
                 print(f"Convergence in {self.it_pdf} iterations.")
@@ -433,14 +454,14 @@ class ConSaveEGM:
                 raise Exception("No density function convergence.")
             
             # ii. steady state assets
-            self.a_ss = np.sum(np.dot(self.stationary_pdf, self.grid_sav))
+            self.a_ss = np.sum(np.dot(self.stationary_pdf, self.grid_a_fine))
             
             # iii. marginal wealth density
             self.stationary_wealth_pdf = np.sum(self.stationary_pdf, axis=0)
             
             t2 = time.time()
             print(f'Density approximation time elapsed: {t2-t1:.2f} seconds')
-            
+        
         
         
         # eigenvector
@@ -449,10 +470,10 @@ class ConSaveEGM:
             print("\nStationary Distribution Solution Method: Eigenvector Method for Exact Stationary Density")
             print("\nComputing...")
             
-            self.stationary_pdf, self.Q = self.eigen_stationary_density_egm()
-        
+            self.stationary_pdf, self.Q = self.eigen_stationary_density()
+            
             # i. aggregate asset holdings
-            self.a_ss = np.sum(np.dot(self.stationary_pdf, self.grid_sav))
+            self.a_ss = np.sum(np.dot(self.stationary_pdf, self.grid_a_fine))
             
             # iii. marginal wealth density
             self.stationary_wealth_pdf = np.sum(self.stationary_pdf, axis=0)
@@ -462,7 +483,7 @@ class ConSaveEGM:
         
         
         
-         # monte carlo simulation
+        # monte carlo simulation
         if self.simulate ==1 or self.distribution_method == 'monte carlo':
             
             if self.distribution_method == 'monte carlo':
@@ -490,9 +511,10 @@ class ConSaveEGM:
         
         else:
             t2 = time.time()
-            
-            
-        # c. calculate euler equation error
+
+    
+
+        # c. calculate euler equation error across the state space
         
         if self.full_euler_error:
             self.euler_error, self.max_error, self.avg_error = self.ee_error()
@@ -506,46 +528,67 @@ class ConSaveEGM:
         if self.plott:
             
             print('\nPlotting...')
-            
-            ##### Policy Functions #####
-            plt.plot(self.grid_sav, self.pol_sav.T)   
-            plt.title("Savings Policy Function")
+        
+            ##### Solutions #####
+            plt.plot(self.grid_a, self.VF.T)
+            plt.title('Value Function')
+            plt.legend(['z='+str(self.grid_z[0]),'z='+str(self.grid_z[1])])
             plt.xlabel('Assets')
-            plt.savefig('savings_policyfunction_egm_v2.pdf')
+            #plt.savefig('value_function_vfi_v1.pdf')
             plt.show()
             
-            plt.plot(self.grid_sav, self.pol_cons.T)
-            plt.title("Consumption Policy Function")
+            plt.plot(self.grid_a, self.pol_sav.T)
+            plt.title("Savings Policy Function")
+            plt.plot([self.a_bar,self.a_max], [self.a_bar,self.a_max],linestyle=':')
+            plt.legend(['z='+str(self.grid_z[0]),'z='+str(self.grid_z[1]),'45 degree line'])
             plt.xlabel('Assets')
-            plt.savefig('consumption_policyfunction_egm_v2.pdf')
+            #plt.savefig('savings_policyfunction_vfi_v1.pdf')
+            plt.show()
+            
+            plt.plot(self.grid_a, self.pol_cons.T)
+            plt.title("Consumption Policy Function")
+            plt.legend(['z='+str(self.grid_z[0]),'z='+str(self.grid_z[1])])
+            plt.xlabel('Assets')
+            #plt.savefig('consumption_policyfunction_vfi_v1.pdf')
             plt.show()
             
             if self.full_euler_error:
-                plt.plot(self.grid_sav, self.euler_error.T)
+                plt.plot(self.grid_a_fine, self.euler_error.T)
                 plt.title('Log10 Euler Equation Error')
                 plt.xlabel('Assets')
-                plt.savefig('log10_euler_error_egm_v2.pdf')
+                #plt.savefig('log10_euler_error_vfi_v1.pdf')
                 plt.show()
-            
+                
+                
                 
             ##### Distributions ####
             if self.distribution_method == 'discrete' or self.distribution_method == 'eigenvector':
                 
-                # marginal wealth density
-                plt.plot(self.grid_sav, self.stationary_wealth_pdf)
-                plt.title("Stationary Wealth Density (Discrete Approx.)") if self.distribution_method == 'discrete' else plt.title("Stationary Wealth Density (Eigenvector Method)")
+                # joint stationary density
+                plt.plot(self.grid_a_fine, self.stationary_pdf.T)
+                plt.title("Joint Stationary Density (Discrete Approx.)") if self.distribution_method == 'discrete' else plt.title("Joint Stationary Density (Eigenvector Method)")
                 plt.xlabel('Assets')
-                plt.savefig('wealth_density_egm_v2_discrete.pdf') if self.distribution_method == 'discrete' else plt.savefig('wealth_density_egm_v2_eigenvector.pdf')
+                plt.legend(['z='+str(self.grid_z[0]),'z='+str(self.grid_z[1])])
+                #plt.savefig('joint_density_vfi_v1_discrete.pdf') if self.distribution_method == 'discrete' else plt.savefig('joint_density_vfi_v1_eigenvector.pdf')
                 plt.show()
                 
+                # marginal wealth density
+                plt.plot(self.grid_a_fine, self.stationary_wealth_pdf)
+                plt.title("Stationary Wealth Density (Discrete Approx.)") if self.distribution_method == 'discrete' else plt.title("Stationary Wealth Density (Eigenvector Method)")
+                plt.xlabel('Assets')
+                #plt.savefig('wealth_density_vfi_v1_discrete.pdf') if self.distribution_method == 'discrete' else plt.savefig('wealth_density_vfi_v1_eigenvector.pdf')
+                plt.show()
+                
+            
+            
             if self.distribution_method == 'monte carlo':
                 sns.histplot(self.sim_sav[-1,:], bins=100, stat='density')
                 plt.title("Stationary Wealth Density (Monte Carlo Approx.)")
                 plt.xlabel('Assets')
-                plt.savefig('wealth_density_egm_v2_montecarlo.pdf')
+                #plt.savefig('wealth_density_vfi_v1_montecarlo.pdf')
                 plt.show()
-        
-                
+            
+            
             
             ##### Simulation #####
             if self.simulate or self.distribution_method == 'monte carlo':
@@ -553,8 +596,8 @@ class ConSaveEGM:
                 fig.tight_layout(pad=4)
                 
                 #first individual over first 100 periods
-                ax1.plot(np.arange(0,99,1), self.sim_sav[:99,0], np.arange(0,99,1), self.sim_c[:99,0],
-                         np.arange(0,99,1), self.sim_z[:99,0],'--')
+                ax1.plot(np.arange(0,99,1), self.sim_sav[:99,1], np.arange(0,99,1), self.sim_c[:99,1],
+                         np.arange(0,99,1), self.sim_z[:99,1],'--')
                 ax1.legend(['Savings', 'Consumption', 'Income'])  
                 ax1.set_title('Simulation of First Household During First 100 Periods')
                 
@@ -563,20 +606,19 @@ class ConSaveEGM:
                          np.arange(0,self.simT,1), np.mean(self.sim_c, axis=1) )
                 ax2.legend(['Savings', 'Consumption', 'Income'])
                 ax2.set_title('Simulation Average over 50,000 Households')
-                plt.savefig('simulation_egm_v2.pdf')
+                #plt.savefig('simulation_vfi_v1.pdf')
                 plt.show()
-            
-            t3 = time.time()
-            print(f'Plot time elapsed: {t3-t2:.2f} seconds')
-
-            
-                    
                 
                 
-            
+
+        t4 = time.time()
+        print(f'Plot time elapsed: {t4-t3:.2f} seconds')
             
 
-
+        
+            
+            
+            
         # e. print solution 
         
         if self.distribution_method != 'none':
@@ -603,149 +645,112 @@ class ConSaveEGM:
         print(f'\nTotal Run Time: {t5-t0:.2f} seconds')
 
 
+        
 
 
-
-###############################
-# II. JIT Compiled Functions #
+################################
+# II. JIT Compiled Functions  #
 ##############################
 
 
-############################################
-# 1. Household and Endogenous Grid Method #
-###########################################
+#########################
+# 1. Helper Functions  #
+########################
 
 @njit
-def egm_algo(pol_cons_old, grid_sav, params_egm):
-       
+def utility(c, sigma):
     """
-    Endogenous grid method to help solve the household problem.
+    CRRA utility function.
+
+    *Input 
+        - c : Consumption
+        - sigma: Risk aversion coefficient
+
+    *Output
+        - Utility value
+
+    """
+    
+    eps = 1e-8
+    
+    if  sigma == 1:
+        return np.log(np.fmax(c, eps))
+    else:
+        return (np.fmax(c, eps) ** (1 - sigma) -1) / (1 - sigma)
+
+
+
+###########################################
+# 2. Household Value Function Iteration  #
+##########################################
+
+@njit(parallel=True)
+def solve_hh(grid_a, params_vfi):
+    """
+    Solves the household problem by value function iteration.
     
     *Input
-        - pol_cons_old: consumption policy function from previous iteration.
-        - grid_sav: savings grid
-        - params_egm: model parameters
-        
+        - grid_a: asset grid
+        - params_vfi: model parameters
+    
     *Output
-        - pol_cons: updated consumption policy function
-        - a_star: endogenous grid 
+        -- VF: value function
+        -- pol_sav: the a' (savings) policy function
+        -- pol_cons: the consumption policy function
+        -- it: number of iterations
     """
-       
-    # a. initialize 
-    ret, w, beta, pi, grid_z, sigma, maxit, tol = params_egm
+    
+
+    # a. Initialize
+    ret, w, beta, pi, grid_z, sigma, maxit, tol = params_vfi
     
     Nz = len(grid_z)
-    Ns = len(grid_sav)
-    c_tilde=np.zeros((Nz, Ns))
-    a_star=np.zeros((Nz, Ns))
-    pol_cons = np.zeros((Nz, Ns))
+    Na = len(grid_a)
     
-    # b. helper functions
-    u_prime = lambda c : c**(-sigma)
+    VF_old    = np.zeros((Nz,Na))  #initial guess
+    VF = np.copy(VF_old)            #contracted value function aka Tv
+    pol_sav = np.copy(VF_old)       #savings policy function a'(z,a)
+    pol_cons = np.copy(VF_old)      #consumption policy function c(z,a)
     
-    u_prime_inv = lambda x : x ** (-1/sigma)
-       
-    for i_z in range(Nz):
- 
-        # c. find RHS of euler equation (step 3 in EGM algo)
-        avg_marg_u_plus = np.zeros(Ns)
-        
-        for i_zz in range(Nz):
- 
-            # i. future consumption
-            c_plus = pol_cons_old[i_zz,:]
- 
-            # iii. future marginal utility
-            marg_u_plus = u_prime(c_plus)
- 
-            # iv. average marginal utility
-            weight = pi[i_z, i_zz]
- 
-            avg_marg_u_plus += weight * marg_u_plus
-            
-        ee_rhs = (1 + ret) * beta * avg_marg_u_plus    
- 
-        # d. find current consumption (step 4 EGM algo)
-        c_tilde[i_z,:] = u_prime_inv(ee_rhs)
-        
-        # e. get the endogenous grid of the value of assets today (step 5 EGM algo) 
-        a_star[i_z,:] = (c_tilde[i_z,:] + grid_sav - grid_z[i_z]*w) / (1+ret)
-        
-        # f. update new consumption policy guess on savings grid
-        for i_s, v_s in enumerate(grid_sav):
-            
-            if v_s <= a_star[i_z,0]:   #borrowing constrained, outside the grid range on the left
-                pol_cons[i_z, i_s] = (1+ret)*v_s + grid_sav[0] + grid_z[i_z]*w
+    # b. Iterate
+    for it in range(maxit) :
+        for iz in range(Nz):
+            for ia in prange(Na):
                 
-            elif  v_s >= a_star[i_z,-1]: # , linearly extrapolate, outside the grid range on the right
-                pol_cons[i_z, i_s] = c_tilde[i_z,-1] + (v_s-a_star[i_z,-1])*(c_tilde[i_z,-1] - c_tilde[i_z,-2])/(a_star[i_z,-1]-a_star[i_z,-2])
- 
-            else: #linearly interpolate, inside the grid range
-                pol_cons[i_z, i_s] = interp(a_star[i_z,:], c_tilde[i_z,:], v_s)
-    
-    
-    return pol_cons, a_star      
-
-
-
-@njit   
-def solve_hh(grid_sav, params_egm):
-    
-    """
-    Solves the household problem.
-    
-    *Input
-        - grid_sav: savings grid
-        - params_egm: model parameters
-    
-    *Output
-        - pol_cons: consumption policy function solution given prices
-        - pol_sav: savings policy function solution given prices
-        - a_star: endogenous grid
-        - it_hh: number of iterations to convergence
-    """
-
-    # a. initialize and initial guess (consume everything. Step 2 in EGM algo)
-    ret, w, beta, pi, grid_z, sigma, maxit, tol = params_egm
-    
-    Ns = len(grid_sav)
-    Nz = len(grid_z)
-    
-    pol_cons_old = np.zeros((Nz, Ns))
-    
-    for i_z, v_z in enumerate(grid_z):
-        pol_cons_old[i_z,:] = (1+ret)*grid_sav + v_z*w 
-
-
-    # b. policy function iteration
-    
-    for it_hh in range(maxit):
+                # i. budget constraint 
+                c = (1+ret)*grid_a[ia] + w*grid_z[iz] - grid_a
+                
+                # ii. utility and impose nonnegativity for consumption
+                util = utility(c, sigma)
+                util[c < 0] = -10e10
+                
+                # iii. value and policy functions
+                RHS = util + beta*(np.dot(pi[iz,:], VF_old))    #RHS of Bellman
+                
+                VF[iz,ia] = np.max(RHS)     #take maximum value for value function
+                
+                pol_sav[iz,ia] = grid_a[np.argmax(RHS)]      #policy function for how much to save
+            
+            # obtain consumption policy function
+            pol_cons[iz,:] = (1+ret)*grid_a + w*grid_z[iz] - pol_sav[iz,:]
         
-        # i. iterate
-        pol_cons, a_star = egm_algo(pol_cons_old, grid_sav, params_egm)
-        
-        # ii. calculate supremum norm
-        dist = np.abs(pol_cons - pol_cons_old).max()
+        # iv. calculate supremum norm
+        dist = np.abs(VF-VF_old).max()
         
         if dist < tol :
             break
         
-        pol_cons_old = np.copy(pol_cons)
+        VF_old = np.copy(VF)
 
-    # c. obtain savings policy function
-    pol_sav = np.zeros((Nz, Ns))
+
+
     
-    for i_z, v_z in enumerate(grid_z):
-        pol_sav[i_z,:] = (1+ret)*grid_sav + v_z*w - pol_cons[i_z,:]
-        
-    
-    return pol_cons, pol_sav, a_star, it_hh
-        
-    
+    return VF, pol_sav, pol_cons, it
+
 
 
 ####################
-# 2. Simulation   #
+# 3. Simulation   #
 ##################
 
 @njit(parallel=True)
@@ -768,25 +773,24 @@ def simulate_MarkovChain(pol_cons, pol_sav, params_sim):
         - euler_error_sim : error when the euler equation equality holds
     """
     
+    # 1. initialize
+    a0, z0, ret, w, simN, simT, grid_z, grid_a, sigma, beta, pi, seed = params_sim
     
-    # 1. initialization
-    
-    a0, ret, w, simN, simT, grid_z, grid_sav, sigma, beta, pi, shock_history = params_sim
-    
+    np.random.seed(seed)
     sim_sav = np.zeros((simT,simN))
     sim_c = np.zeros((simT,simN))
     sim_m = np.zeros((simT,simN))
-    sim_z = np.zeros((simT,simN), np.float64)
+    sim_z = np.zeros((simT,simN))
     sim_z_idx = np.zeros((simT,simN), np.int32)
-    edge = 0
     euler_error_sim = np.empty((simT,simN)) * np.nan
+    edge = 0
     
     
     
     # 2. helper functions
     
     # savings policy function interpolant
-    polsav_interp = lambda a, z: interp(grid_sav, pol_sav[z, :], a)
+    polsav_interp = lambda a, z: interp(grid_a, pol_sav[z, :], a)
     
     # marginal utility
     u_prime = lambda c : c**(-sigma)
@@ -798,18 +802,30 @@ def simulate_MarkovChain(pol_cons, pol_sav, params_sim):
     
     # 3. simulate markov chain
     for t in range(simT):   #time
+
+        draw = np.linspace(0, 1, simN)
+        np.random.shuffle(draw)
         
-        for i in prange(simN):  #individual hh
+        for i in prange(simN):  #individual
 
             # a. states 
             if t == 0:
+                z_lag_idx = z0[i]
                 a_lag = a0[i]
+                
             else:
+                z_lag_idx = sim_z_idx[t-1,i]
                 a_lag = sim_sav[t-1,i]
                 
-            # b. shock realization. 
-            sim_z_idx[t,i] = shock_history[t,i]
-            sim_z[t,i] = grid_z[sim_z_idx[t,i]]
+            # b. shock realization. 0 for low state. 1 for high state.
+            if draw[i] <= pi[z_lag_idx, 1]:     #state transition condition
+            
+                sim_z_idx[t,i] = 1      #index
+                sim_z[t,i] = grid_z[sim_z_idx[t,i]]     #shock value
+                
+            else:
+                sim_z_idx[t,i] = 0      #index
+                sim_z[t,i] = grid_z[sim_z_idx[t,i]]     #shock value
                 
             # c. income
             y = w*sim_z[t,i]
@@ -819,14 +835,12 @@ def simulate_MarkovChain(pol_cons, pol_sav, params_sim):
             
             # e. savings path
             sim_sav[t,i] = polsav_interp(a_lag,sim_z_idx[t,i])
-            if sim_sav[t,i] < grid_sav[0] : sim_sav[t,i] = grid_sav[0]     #ensure constraint binds
+            if sim_sav[t,i] < grid_a[0] : sim_sav[t,i] = grid_a[0]     #ensure constraint binds
             
             # f. consumption path
             
             sim_c[t,i] = sim_m[t, i] - sim_sav[t,i]   
             
-           
-                
             # g. error evaluation
             
             check_out=False
@@ -835,7 +849,7 @@ def simulate_MarkovChain(pol_cons, pol_sav, params_sim):
                 check_out=True
                 
             constrained=False
-            if sim_sav[t,i] == grid_sav[0]:
+            if sim_sav[t,i] == grid_a[0]:
                 constrained=True
             
                 
@@ -846,43 +860,40 @@ def simulate_MarkovChain(pol_cons, pol_sav, params_sim):
                 for i_zz in range(len(grid_z)):      #next period productivity
                 
                     sav_int = polsav_interp(sim_sav[t,i],i_zz)
-                    if sav_int < grid_sav[0] : sav_int = grid_sav[0]     #ensure constraint binds
-                
+                    if sav_int < grid_a[0] : sav_int = grid_a[0]     #ensure constraint binds
+                    
                     c_plus = (1 + ret) * sim_sav[t,i] + w*grid_z[i_zz] - polsav_interp(sim_sav[t,i],i_zz)
                         
                     #expectation of marginal utility of consumption
                     avg_marg_c_plus += pi[sim_z_idx[t,i],i_zz] * u_prime(c_plus)
                 
                 #euler error
-                euler_error_sim[t,i] = np.abs(1 - (u_prime_inv(beta*(1+ret)*avg_marg_c_plus) / sim_c[t,i]))
+                euler_error_sim[t,i] = 1 - (u_prime_inv(beta*(1+ret)*avg_marg_c_plus) / sim_c[t,i])
             
-    
+            
+            
     # 4. transform euler eerror to log_10 and get max and average
-    euler_error_sim = np.log10(np.abs(euler_error_sim))        
-            
-            
+    euler_error_sim = np.log10(np.abs(euler_error_sim))
+                
     # 5. grid size evaluation
-    frac_outside = edge/grid_sav.size
+    frac_outside = edge/grid_a.size
     if frac_outside > 0.01 :
         raise Exception('Increase grid size!')
     
-    
-                
-
     return sim_c, sim_sav, sim_z, sim_m, euler_error_sim
 
 
 
-###############################
-# 3. Density Approximation   #
-##############################
+###############################################################################
+# 4. Stationary Distribution: Discrete Approximation and Forward Iteration   #
+##############################################################################
 
 @njit
-def discrete_stationary_density_egm(pol_sav, a_star, params_discrete):
+def discrete_stationary_density(pol_sav, params_discrete):
     """
-    Discrete approximation of the density function adapted for the endogenous grid method. Approximates the 
-    stationary joint density through forward iteration and linear interpolation over a discretized state space. 
-    The algorithm is from Ch.7 in Heer and Maussner.
+    Discrete approximation of the density function. Approximates the stationary joint density through forward 
+    iteration and linear interpolation over a discretized state space. By default the code uses a finer grid than 
+    the one in the solution but one could use the same grid here. The algorithm is from Ch.7 in Heer and Maussner.
     
     *Input
         - pol_sav: savings policy function
@@ -893,52 +904,55 @@ def discrete_stationary_density_egm(pol_sav, a_star, params_discrete):
         - it: number of iterations
     """
     
-    
     # a. initialize
     
-    grid_sav, Nz, pi, pi_stat, maxit, tol = params_discrete
+    grid_a, grid_a_fine, Nz, pi, pi_stat, maxit, tol = params_discrete
     
-    Ns = len(grid_sav)
+    Na_fine = len(grid_a_fine)
     
     # initial guess uniform distribution
-    stationary_pdf_old = np.ones((Ns, Nz))/Ns
+    stationary_pdf_old = np.ones((Na_fine, Nz))/Na_fine
     stationary_pdf_old = stationary_pdf_old * np.transpose(pi_stat)
     stationary_pdf_old = stationary_pdf_old.T
     
     # b. fixed point iteration
     for it in range(maxit):   # iteration 
         
-        stationary_pdf = np.zeros((Nz, Ns))    # distribution in period t+1
+        stationary_pdf = np.zeros((Nz, Na_fine))    # distribution in period t+1
              
-        for i_z in range(Nz):     # iteration over productivity types in period t
+        for iz in range(Nz):     # iteration over productivity types in period t
             
-            for i_s, s0 in enumerate(grid_sav):  # iteration over grid
-            
-                # i. interpolate
-                s_intp = np.interp(s0, a_star[i_z,:], grid_sav)
+            for ia, a0 in enumerate(grid_a_fine):  # iteration over assets in period t
                 
+                # i. interpolate 
+                
+                a_intp = interp(grid_a, pol_sav[iz,:], a0) # linear interpolation for a'(z, a) 
+                   
                 # ii. obtain distribution in period t+1   
                 
-                #less than or equal to lowest grid value
-                if s_intp <= grid_sav[0]:
-                    for i_zz in range(Nz):
-                        stationary_pdf[i_zz,0] = stationary_pdf[i_zz,0] + stationary_pdf_old[i_z,i_s]*pi[i_z,i_zz]
-                    
-                #more than or equal to greatest grid value
-                elif s_intp >= grid_sav[-1]:
-                   for i_zz in range(Nz):
-                        stationary_pdf[i_zz,-1] = stationary_pdf[i_zz,-1] + stationary_pdf_old[i_z,i_s]*pi[i_z,i_zz]
-                   
-                #inside grid
-                else:
-                   
-                   j = np.sum(grid_sav <= s_intp) # grid index. s_intp lies between grid_sav[j-1] and grid_sav[j]
-                   p0 = (s0 - a_star[i_z, j-1]) / (a_star[i_z, j] - a_star[i_z, j-1])
-                
-                   for i_zz in range(Nz):
+                #left edge of the grid
+                if a_intp <= grid_a_fine[0]:
+                    for izz in range(Nz):
+                        stationary_pdf[izz,0] = stationary_pdf[izz,0] + stationary_pdf_old[iz,ia]*pi[iz,izz]
                         
-                            stationary_pdf[i_zz,j] = stationary_pdf[i_zz,j] + p0*stationary_pdf_old[i_z,i_s]*pi[i_z,i_zz]
-                            stationary_pdf[i_zz,j-1] =stationary_pdf[i_zz,j-1] + (1-p0)*stationary_pdf_old[i_z,i_s]*pi[i_z,i_zz]
+                
+                #right edge of the grid
+                elif a_intp >= grid_a_fine[-1]:
+                    for izz in range(Nz):
+                        stationary_pdf[izz,-1] = stationary_pdf[izz,-1] + stationary_pdf_old[iz,ia]*pi[iz,izz]
+                        
+                    
+                #inside the grid range, linearly interpolate
+                else:
+                    
+                    j = np.sum(grid_a_fine <= a_intp) # a_intp lies between grid_sav_fine[j-1] and grid_sav_fine[j]
+                    
+                    p0 = (a_intp-grid_a_fine[j-1]) / (grid_a_fine[j]-grid_a_fine[j-1])
+                    
+                    for izz in range(Nz):
+                    
+                        stationary_pdf[izz,j] = stationary_pdf[izz,j] + p0*stationary_pdf_old[iz,ia]*pi[iz,izz]
+                        stationary_pdf[izz,j-1] =stationary_pdf[izz,j-1] + (1-p0)*stationary_pdf_old[iz,ia]*pi[iz,izz]
         
         
         #stationary distribution by percent 
@@ -959,9 +973,8 @@ def discrete_stationary_density_egm(pol_sav, a_star, params_discrete):
 
 
 
-#run everything
-
-cs_EGM2=ConSaveEGM()
-cs_EGM2.solve_model()
 
 
+# run model
+cs_vfi1=ConSaveVFIsmall()
+cs_vfi1.solve_model()
