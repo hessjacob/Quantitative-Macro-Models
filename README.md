@@ -40,9 +40,9 @@ Partial equilibrium solution (prices are exogenously set) for heterogenous agent
 **Shared features in all versions is** 
 
 1) The user can choose to find the stationary distribution with one of three methods:
-* Discrete approximation of the density function which conducts a fixed point iteration with linear interpolation
-* Eigenvector method to solve for the exact stationary density.
-* Monte carlo simulation with 50,000 households. 
+   * Discrete approximation of the density function which conducts a fixed point iteration with linear interpolation
+   * Eigenvector method to solve for the exact stationary density.
+   * Monte carlo simulation with 50,000 households. 
 2) Exogenous borrowing constraint which the user can choose. 
 3) Calculation of the euler equation error both across the entire grid space and through a simulation.
 
