@@ -14,8 +14,8 @@ To find the stationary distribution one can choose from three methods:
 3) Monte carlo simulation. 
     
 Finally, to evaluate the accuracy of the solution the code computes the euler equation error with two different methods. 
-One by simulating the model and calulating the error for each individual. The other is by calculating the error at every 
-point in the state space.
+One by simulating the model and calulating the error for each individual. The other is by calculating the error across 
+the entire in the state space.
 
 Aknowledgements: I wrote the algorithms using the following resources :
     1) Gianluca Violante's gloval methods and distribution approximation notes (https://sites.google.com/a/nyu.edu/glviolante/teaching/quantmacro)
@@ -62,8 +62,8 @@ class ConSaveEGM:
     def __init__(self, a_bar = 0,              #select borrowing limit
                        plott =1,               #select 1 to make plots
                        simulate =0,            #select 1 to run simulation (if distribution_method = 'monte carlo' simulate is automatically set to 1 )
-                       full_euler_error = 0,        #select to compute euler_error for entire state space
-                       distribution_method = 'discrete' #Approximation method of the stationary distribution. 
+                       full_euler_error = 1,        #select to compute euler_error for entire state space
+                       distribution_method = 'none' #Approximation method of the stationary distribution. 
                                                        #Options: 'discrete', 'eigenvector', 'monte carlo' or 'none'
                        ):
         
@@ -226,8 +226,7 @@ class ConSaveEGM:
 
     def ee_error(self):
         """
-        Computes the euler equation error over the entire state space. The function recalculates the household 
-        problem on a finer grid and then calculates the errors at each grid point.
+        Computes the euler equation error over the entire state space with a finer grid.
         
         *Output
             * Log10 euler_error
@@ -239,54 +238,56 @@ class ConSaveEGM:
         # a. initialize
         euler_error = np.zeros((self.Nz, self.Ns))
         
-        # b. helper functions
+        # b. helper function
         u_prime = lambda c : c**(-self.sigma)
         
         u_prime_inv = lambda x : x ** (-1/self.sigma)
         
-        # c. calulate euler equation error
-       
-        print("Euler Error Calculation: Evaluating the errors...")
+        # c. calculate euler error at all fine grid points
         
-        # i. calculate euler error at all fine grid points
-        
-        t0_ee = time.time()     #start the clock
-        
-        for i_z in range(self.Nz):       #current productivity
-            for i_s in range(self.Ns):   #current asset
-            
-                c = self.pol_cons[i_z, i_s]        #current consumption
-                a_plus = self.pol_sav[i_z, i_s]     #savings 
-                avg_marg_c_plus = 0
+        for i_z, z in enumerate(self.grid_z):       #current income shock
+            for i_s, s0 in enumerate(self.grid_sav):   #current asset level
                 
-                if a_plus == 0:
+                # i. interpolate savings policy function fine grid point
+            
+                a_plus = interp(self.grid_sav, self.pol_sav[i_z,:], s0)
+                
+                # liquidity constrained, do not calculate error
+                if a_plus <= 0:     
                     euler_error[i_z, i_s] = np.nan
                 
+                # interior solution
                 else:
-                    for i_zz in range(self.Nz):      #next period productivity
                     
-                        c_plus = (1 + self.ret) * a_plus + self.w*self.grid_z[i_zz] - interp(self.grid_sav, self.pol_sav[i_zz,:], a_plus)
-                            
+                    # ii. current consumption and initialize expected marginal utility
+                    c = (1 + self.ret) * s0 + self.w * z - a_plus
+                    
+                    avg_marg_c_plus = 0
+                    
+                    # iii. expected marginal utility
+                    for i_zz, z_plus in enumerate(self.grid_z):      #next period productivity
+                    
+                        c_plus = (1 + self.ret) * a_plus + self.w * z_plus - interp(self.grid_sav, self.pol_sav[i_zz,:], a_plus)
+                        
                         #expectation of marginal utility of consumption
                         avg_marg_c_plus += self.pi[i_z,i_zz] * u_prime(c_plus)
-                        
-                    #compute euler error
+                    
+                    # iv. compute euler error
                     euler_error[i_z, i_s] = 1 - u_prime_inv(self.beta*(1+self.ret)*avg_marg_c_plus) / c
-                
-        
-        # ii. transform euler error with log_10 and take max
+                    
+       
+        # ii. transform euler error with log_10. take max and average
         euler_error = np.log10(np.abs(euler_error))
         max_error =  np.nanmax(np.nanmax(euler_error, axis=1))
         avg_error = np.nanmean(euler_error) 
         
-        t1_ee = time.time()
-        print(f'\tError calculation time elapsed: {t1_ee-t0_ee:.2f} seconds')
         
         
         return euler_error, max_error, avg_error
     
     
         
+    
     
     #####################################################
     # 4. Stationary Distribution: Eigenvector Method   #
@@ -492,12 +493,18 @@ class ConSaveEGM:
             t2 = time.time()
             
             
-        # c. calculate euler equation error
+        # c. calculate euler equation error across the state space
         
         if self.full_euler_error:
+            print("\nCalculating Euler Equation Error...")
+            
             self.euler_error, self.max_error, self.avg_error = self.ee_error()
             
-        t3 = time.time()
+            t3 = time.time()
+            print(f'Euler Eq. error calculation time elapsed: {t3-t2:.2f} seconds')
+            
+        else: 
+            t3 = time.time()
         
         
         
@@ -511,20 +518,20 @@ class ConSaveEGM:
             plt.plot(self.grid_sav, self.pol_sav.T)   
             plt.title("Savings Policy Function")
             plt.xlabel('Assets')
-            plt.savefig('savings_policyfunction_egm_v2.pdf')
+            #plt.savefig('savings_policyfunction_egm_v2.pdf')
             plt.show()
             
             plt.plot(self.grid_sav, self.pol_cons.T)
             plt.title("Consumption Policy Function")
             plt.xlabel('Assets')
-            plt.savefig('consumption_policyfunction_egm_v2.pdf')
+            #plt.savefig('consumption_policyfunction_egm_v2.pdf')
             plt.show()
             
             if self.full_euler_error:
                 plt.plot(self.grid_sav, self.euler_error.T)
                 plt.title('Log10 Euler Equation Error')
                 plt.xlabel('Assets')
-                plt.savefig('log10_euler_error_egm_v2.pdf')
+                #plt.savefig('log10_euler_error_egm_v2.pdf')
                 plt.show()
             
                 
@@ -535,14 +542,14 @@ class ConSaveEGM:
                 plt.plot(self.grid_sav, self.stationary_wealth_pdf)
                 plt.title("Stationary Wealth Density (Discrete Approx.)") if self.distribution_method == 'discrete' else plt.title("Stationary Wealth Density (Eigenvector Method)")
                 plt.xlabel('Assets')
-                plt.savefig('wealth_density_egm_v2_discrete.pdf') if self.distribution_method == 'discrete' else plt.savefig('wealth_density_egm_v2_eigenvector.pdf')
+                #plt.savefig('wealth_density_egm_v2_discrete.pdf') if self.distribution_method == 'discrete' else plt.savefig('wealth_density_egm_v2_eigenvector.pdf')
                 plt.show()
                 
             if self.distribution_method == 'monte carlo':
                 sns.histplot(self.sim_sav[-1,:], bins=100, stat='density')
                 plt.title("Stationary Wealth Density (Monte Carlo Approx.)")
                 plt.xlabel('Assets')
-                plt.savefig('wealth_density_egm_v2_montecarlo.pdf')
+                #plt.savefig('wealth_density_egm_v2_montecarlo.pdf')
                 plt.show()
         
                 
@@ -563,7 +570,7 @@ class ConSaveEGM:
                          np.arange(0,self.simT,1), np.mean(self.sim_c, axis=1) )
                 ax2.legend(['Savings', 'Consumption', 'Income'])
                 ax2.set_title('Simulation Average over 50,000 Households')
-                plt.savefig('simulation_egm_v2.pdf')
+                #plt.savefig('simulation_egm_v2.pdf')
                 plt.show()
             
             t3 = time.time()

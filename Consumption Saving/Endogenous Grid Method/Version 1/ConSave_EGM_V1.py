@@ -14,8 +14,8 @@ To find the stationary distribution one can choose from three methods:
 3) Monte carlo simulation. 
     
 Finally, to evaluate the accuracy of the solution the code computes the euler equation error with two different methods. 
-One by simulating the model and calulating the error for each individual. The other is by calculating the error at every 
-point in the state space.
+One by simulating the model and calulating the error for each individual. The other is by calculating the error across 
+the entire in the state space.
 
 Aknowledgements: I wrote the algorithms using the following resources :
     1) Gianluca Violante's gloval methods and distribution approximation notes (https://sites.google.com/a/nyu.edu/glviolante/teaching/quantmacro)
@@ -61,7 +61,7 @@ class ConSaveEGMsmall:
                        plott =1,               #select 1 to make plots
                        simulate =0,            #select 1 to run simulation (if distribution_method = 'monte carlo' simulate is automatically set to 1 )
                        full_euler_error = 1,        #select to compute euler_error for entire state space
-                       distribution_method = 'discrete' #Approximation method of the stationary distribution. 
+                       distribution_method = 'none' #Approximation method of the stationary distribution. 
                                                        #Options: 'discrete', 'eigenvector', 'monte carlo' or 'none'
                        ):
         
@@ -166,7 +166,6 @@ class ConSaveEGMsmall:
         if self.simulate or self.distribution_method == 'monte carlo':
             self.z0 = np.zeros(self.simN, dtype=np.int32)
             self.z0[np.linspace(0, 1, self.simN) > self.ini_p_z[0]] = 1
-        
         
         
 
@@ -362,8 +361,7 @@ class ConSaveEGMsmall:
 
     def ee_error(self):
         """
-        Computes the euler equation error over the entire state space. The function recalculates the household 
-        problem on a finer grid and then calculates the errors at each grid point.
+        Computes the euler equation error over the entire state space with a finer grid.
         
         *Output
             * Log10 euler_error
@@ -375,49 +373,55 @@ class ConSaveEGMsmall:
         # a. initialize
         euler_error = np.zeros((self.Nz, self.Ns))
         
+        # b. helper function
+        u_prime = lambda c : c**(-self.sigma)
         
-        # b. calulate euler equation error
-       
-        print("Euler Error Calculation: Evaluating the errors...")
+        u_prime_inv = lambda x : x ** (-1/self.sigma)
         
-        # i. calculate euler error at all fine grid points
+        # c. calculate euler error at all fine grid points
         
-        t0_ee = time.time()     #start the clock
-        
-        for i_z in range(self.Nz):       #current productivity
-            for i_s in range(self.Ns):  # current savings
-            
-                c = self.pol_cons[i_z, i_s]        #current consumption
-                a_plus = self.pol_sav[i_z, i_s]     #savings 
-                avg_marg_c_plus = 0
+        for i_z, z in enumerate(self.grid_z):       #current income shock
+            for i_s, s0 in enumerate(self.grid_sav):   #current asset level
                 
-                if a_plus <= 0:
+                # i. interpolate savings policy function fine grid point
+            
+                a_plus = interp(self.grid_sav, self.pol_sav[i_z,:], s0)
+                
+                # liquidity constrained, do not calculate error
+                if a_plus <= 0:     
                     euler_error[i_z, i_s] = np.nan
                 
+                # interior solution
                 else:
-                    for i_zz in range(self.Nz):      #next period productivity
                     
-                        c_plus = (1 + self.ret) * a_plus + self.w*self.grid_z[i_zz] - interp(self.grid_sav, self.pol_sav[i_zz,:], a_plus)
-                            
-                        #expectation of marginal utility of consumption
-                        avg_marg_c_plus += self.pi[i_z,i_zz] * self.u_prime(c_plus)
+                    # ii. current consumption and initialize expected marginal utility
+                    c = (1 + self.ret) * s0 + self.w * z - a_plus
+                    
+                    avg_marg_c_plus = 0
+                    
+                    # iii. expected marginal utility
+                    for i_zz, z_plus in enumerate(self.grid_z):      #next period productivity
+                    
+                        c_plus = (1 + self.ret) * a_plus + self.w * z_plus - interp(self.grid_sav, self.pol_sav[i_zz,:], a_plus)
                         
-                    #compute euler error
-                    euler_error[i_z, i_s] = 1 - self.u_prime_inv(self.beta*(1+self.ret)*avg_marg_c_plus) / c
+                        #expectation of marginal utility of consumption
+                        avg_marg_c_plus += self.pi[i_z,i_zz] * u_prime(c_plus)
+                    
+                    # iv. compute euler error
+                    euler_error[i_z, i_s] = 1 - u_prime_inv(self.beta*(1+self.ret)*avg_marg_c_plus) / c
+                    
        
-        
-        # ii. transform euler error with log_10 and take max
+        # ii. transform euler error with log_10. take max and average
         euler_error = np.log10(np.abs(euler_error))
         max_error =  np.nanmax(np.nanmax(euler_error, axis=1))
         avg_error = np.nanmean(euler_error) 
         
-        t1_ee = time.time()
-        print(f'\tError calculation time elapsed: {t1_ee-t0_ee:.2f} seconds')
         
         
         return euler_error, max_error, avg_error
-    
-    
+        
+
+ 
     
     
     #####################################################
@@ -619,12 +623,18 @@ class ConSaveEGMsmall:
             
             
             
-        # c. calculate euler equation error
+        # c. calculate euler equation error across the state space
         
         if self.full_euler_error:
+            print("\nCalculating Euler Equation Error...")
+            
             self.euler_error, self.max_error, self.avg_error = self.ee_error()
             
-        t3 = time.time()
+            t3 = time.time()
+            print(f'Euler Eq. error calculation time elapsed: {t3-t2:.2f} seconds')
+            
+        else: 
+            t3 = time.time()
         
         
         

@@ -15,8 +15,8 @@ To find the stationary distribution one can choose from three methods:
 3) Monte carlo simulation. 
     
 Finally, to evaluate the accuracy of the solution the code computes the euler equation error with two different methods. 
-One by simulating the model and calulating the error for each individual. The other is by calculating the error at every 
-point in the state space.
+One by simulating the model and calulating the error for each individual. The other is by calculating the error across 
+the entire in the state space.
 
 Aknowledgements: I wrote the algorithms using the following resources :
     1) Gianluca Violante's gloval methods and distribution approximation notes (https://sites.google.com/a/nyu.edu/glviolante/teaching/quantmacro)
@@ -62,8 +62,8 @@ class ConSaveVFI:
     def __init__(self, a_bar = 0,              #select borrowing limit
                       plott =1,               #select 1 to make plots
                       simulate =0,            #select 1 to run simulation (if distribution_method = 'monte carlo' simulate is automatically set to 1 )
-                      full_euler_error = 0,        #select 1 to compute euler_error for entire state space
-                      distribution_method = 'discrete' #Approximation method of the stationary distribution. 
+                      full_euler_error = 1,        #select 1 to compute euler_error for entire state space
+                      distribution_method = 'none' #Approximation method of the stationary distribution. 
                                                       #Options: 'discrete', 'eigenvector', 'monte carlo' or 'none'
                       ):
         
@@ -230,8 +230,7 @@ class ConSaveVFI:
 
     def ee_error(self):
         """
-        Computes the euler equation error over the entire state space. The function recalculates the household 
-        problem on a finer grid and then calculates the errors at each grid point.
+        Computes the euler equation error over the entire state space with a finer grid.
         
         *Output
             * Log10 euler_error
@@ -239,6 +238,7 @@ class ConSaveVFI:
             * average Log10 euler error
         """
         
+                
         # a. initialize
         euler_error = np.zeros((self.Nz, self.Na_fine))
         
@@ -247,60 +247,43 @@ class ConSaveVFI:
         
         u_prime_inv = lambda x : x ** (-1/self.sigma)
         
+        # c. calculate euler error at all fine grid points
         
-        
-        # c. vfi again with finer grid
-        print("\nEuler Error Calculation: Solving household problem on finer grid...")
-        
-        t0_fine = time.time() #start the clock
-        
-        _, pol_sav_fine, pol_cons_fine, it_hh_fine = solve_hh(self.grid_a_fine, self.params_vfi)
-        
-        if it_hh_fine < self.maxit-1:
-            print(f"\tPolicy function convergence in {it_hh_fine} iterations.")
-        else : 
-            raise Exception("\tNo policy function convergence.")
-            
-        t1_fine = time.time()
-        print(f'\tHousehold problem time elapsed: {t1_fine-t0_fine:.2f} seconds')
-        
-        
-        
-        # d. calulate euler equation error
-       
-        print("Euler Error Calculation: Evaluating the errors...")
-        
-        # i. calculate euler error at all fine grid points
-        
-        for i_z in range(self.Nz):       #current productivity
-            for i_a in range(self.Na_fine):   #current asset
-            
-                c = pol_cons_fine[i_z, i_a]        #current consumption
-                a_plus = pol_sav_fine[i_z, i_a]     #savings 
-                avg_marg_c_plus = 0
+        for i_z, z in enumerate(self.grid_z):       #current income shock
+            for i_a, a in enumerate(self.grid_a_fine):   #current asset level
                 
-                if a_plus == 0:
+                # i. interpolate savings policy function fine grid point
+            
+                a_plus = interp(self.grid_a, self.pol_sav[i_z,:], a)
+                
+                # liquidity constrained, do not calculate error
+                if a_plus <= 0:     
                     euler_error[i_z, i_a] = np.nan
-                    
-                else:
                 
-                    for i_zz in range(self.Nz):      #next period productivity
+                # interior solution
+                else:
                     
-                        c_plus = (1 + self.ret) * a_plus + self.w*self.grid_z[i_zz] - interp(self.grid_a_fine, pol_sav_fine[i_zz,:], a_plus)
-                            
+                    # ii. current consumption and initialize expected marginal utility
+                    c = (1 + self.ret) * a + self.w * z - a_plus
+                    avg_marg_c_plus = 0
+                    
+                    # iii. expected marginal utility
+                    for i_zz, z_plus in enumerate(self.grid_z):      #next period productivity
+                    
+                        c_plus = (1 + self.ret) * a_plus + self.w * z_plus - interp(self.grid_a, self.pol_sav[i_zz,:], a_plus)
+                        
                         #expectation of marginal utility of consumption
                         avg_marg_c_plus += self.pi[i_z,i_zz] * u_prime(c_plus)
                     
-                    #compute euler error
+                    # iv. compute euler error
                     euler_error[i_z, i_a] = 1 - u_prime_inv(self.beta*(1+self.ret)*avg_marg_c_plus) / c
+                    
        
         # ii. transform euler error with log_10. take max and average
         euler_error = np.log10(np.abs(euler_error))
         max_error =  np.nanmax(np.nanmax(euler_error, axis=1))
         avg_error = np.nanmean(euler_error) 
         
-        t2_fine = time.time()
-        print(f'\tError calculation time elapsed: {t2_fine-t1_fine:.2f} seconds')
         
         
         return euler_error, max_error, avg_error
@@ -515,9 +498,15 @@ class ConSaveVFI:
         # c. calculate euler equation error across the state space
         
         if self.full_euler_error:
+            print("\nCalculating Euler Equation Error...")
+            
             self.euler_error, self.max_error, self.avg_error = self.ee_error()
             
-        t3 = time.time()
+            t3 = time.time()
+            print(f'Euler Eq. error calculation time elapsed: {t3-t2:.2f} seconds')
+            
+        else: 
+            t3 = time.time()
         
         
         
@@ -546,7 +535,7 @@ class ConSaveVFI:
             plt.plot(self.grid_a, self.pol_cons.T)
             plt.title("Consumption Policy Function")
             plt.xlabel('Assets')
-            plt.savefig('consumption_policyfunction_vfi_v2.pdf')
+            #plt.savefig('consumption_policyfunction_vfi_v2.pdf')
             plt.show()
             
             if self.full_euler_error:
