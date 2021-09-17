@@ -60,8 +60,8 @@ class ConSaveEGMsmall:
     def __init__(self, a_bar = 0,              #select borrowing limit
                        plott =1,               #select 1 to make plots
                        simulate =0,            #select 1 to run simulation (if distribution_method = 'monte carlo' simulate is automatically set to 1 )
-                       full_euler_error = 1,        #select to compute euler_error for entire state space
-                       distribution_method = 'none' #Approximation method of the stationary distribution. 
+                       full_euler_error = 0,        #select to compute euler_error for entire state space
+                       distribution_method = 'discrete' #Approximation method of the stationary distribution. 
                                                        #Options: 'discrete', 'eigenvector', 'monte carlo' or 'none'
                        ):
         
@@ -131,7 +131,7 @@ class ConSaveEGMsmall:
         # savings grid
         self.Ns = 200
         self.sav_min = self.a_bar
-        self.sav_max = 60
+        self.sav_max = 25
         self.curv = 3
         
         # d. simulation
