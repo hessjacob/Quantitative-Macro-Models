@@ -59,8 +59,8 @@ class ConSaveVFIsmall:
     def __init__(self, a_bar = 0,              #select borrowing limit
                        plott =1,               #select 1 to make plots
                        simulate = 0,            #select 1 to run simulation (if distribution_method = 'monte carlo' simulate is automatically set to 1 )
-                       full_euler_error = 1,        #select 1 to compute euler_error for entire state space
-                       distribution_method = 'none' #Approximation method of the stationary distribution. 
+                       full_euler_error = 0,        #select 1 to compute euler_error for entire state space
+                       distribution_method = 'discrete' #Approximation method of the stationary distribution. 
                                                        #Options: 'discrete', 'eigenvector', 'monte carlo' or 'none'
                        ):
         
@@ -130,7 +130,7 @@ class ConSaveVFIsmall:
         # asset grid 
         self.Na = 1000
         self.a_min = self.a_bar
-        self.a_max = 60
+        self.a_max = 25
         self.curv = 3 
         
         if self.distribution_method == 'discrete' or self.distribution_method == 'eigenvector' or self.full_euler_error :
