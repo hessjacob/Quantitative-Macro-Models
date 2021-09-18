@@ -687,7 +687,7 @@ def solve_hh(params_pfi):
         
         # a. Initialize
         
-        ret, w, beta, pi, grid_a, grid_z, sigma, maxit, tol = params_pfi
+        r, w, beta, pi, grid_a, grid_z, sigma, maxit, tol = params_pfi
         
         Na = len(grid_a)
         Nz = len(grid_z)
@@ -697,8 +697,8 @@ def solve_hh(params_pfi):
         pol_cons = np.zeros((Nz,Na))      #consumption policy function c(z,a)
         
         #alternative initil guess -- save everything
-        #pol_sav_old[0,:] = (1+ret)*grid_a + w*grid_z[0] 
-        #pol_sav_old[1,:] = (1+ret)*grid_a + w*grid_z[1] 
+        #pol_sav_old[0,:] = (1+r)*grid_a + w*grid_z[0] 
+        #pol_sav_old[1,:] = (1+r)*grid_a + w*grid_z[1] 
         
         # b. Iterate
         for it in range(maxit) :
@@ -708,11 +708,11 @@ def solve_hh(params_pfi):
                 
                     # i. next period assets bounds
                     lb_aplus = grid_a[0]                   # lower bound
-                    ub_aplus = (1+ret)*a + w*z                   # upper bound
+                    ub_aplus = (1+r)*a + w*z                   # upper bound
                     
                     
                     # ii. set parameters for euler_eq_residual function
-                    params_eer = a, z, pol_sav_old, i_z , ret, w, beta, sigma, pi, grid_z, grid_a
+                    params_eer = a, z, pol_sav_old, i_z , r, w, beta, sigma, pi, grid_z, grid_a
                     
                     
                     # iii. use the sign of the euler equation to determine whether there is a corner or interior solution at the evaluated grid points
@@ -735,7 +735,7 @@ def solve_hh(params_pfi):
                         pol_sav[i_z, i_a] = qe.optimize.root_finding.brentq( euler_eq_residual, lb_aplus, ub_aplus, args=(params_eer,) )[0]
                         
                 # obtain consumption policy function
-                pol_cons[i_z,:] = (1+ret)*grid_a + w*grid_z[i_z] - pol_sav[i_z,:]
+                pol_cons[i_z,:] = (1+r)*grid_a + w*grid_z[i_z] - pol_sav[i_z,:]
                 
                 
             # iv. calculate supremum norm
@@ -765,19 +765,19 @@ def euler_eq_residual(a_plus, params_eer):
     """
     
     # a. Initialize
-    a, z, pol_sav_old, i_z , ret, w, beta, sigma, pi, grid_z, grid_a = params_eer
+    a, z, pol_sav_old, i_z , r, w, beta, sigma, pi, grid_z, grid_a = params_eer
     
     Nz = len(grid_z)
     avg_marg_u_plus = 0
     
     # b. current consumption
-    c = (1+ret)*a + w*z - a_plus
+    c = (1+r)*a + w*z - a_plus
     
     # c. expected marginal utility from consumption next period
     for i_zz in prange(Nz):
  
         # i. consumption next period
-        c_plus = (1+ret)*a_plus + w*grid_z[i_zz] - interp(grid_a, pol_sav_old[i_zz, :], a_plus)
+        c_plus = (1+r)*a_plus + w*grid_z[i_zz] - interp(grid_a, pol_sav_old[i_zz, :], a_plus)
  
         # ii. marginal utility next period
         marg_u_plus = u_prime(c_plus, sigma)
@@ -788,7 +788,7 @@ def euler_eq_residual(a_plus, params_eer):
         avg_marg_u_plus += weight * marg_u_plus
         
     # d. RHS of the euler equation
-    ee_rhs = (1 + ret) * beta * avg_marg_u_plus  
+    ee_rhs = (1 + r) * beta * avg_marg_u_plus  
     
     return u_prime(c, sigma) - ee_rhs
 
@@ -820,7 +820,7 @@ def simulate_MarkovChain(pol_cons, pol_sav, params_sim):
     
     # 1. initialization
     
-    a0, z0, ret, w, simN, simT, grid_z, grid_a, sigma, beta, pi, shock_history = params_sim
+    a0, z0, r, w, simN, simT, grid_z, grid_a, sigma, beta, pi, shock_history = params_sim
     
     sim_sav = np.zeros((simT,simN))
     sim_c = np.zeros((simT,simN))
@@ -864,7 +864,7 @@ def simulate_MarkovChain(pol_cons, pol_sav, params_sim):
             y = w*sim_z[t,i]
             
             # d. cash-on-hand path
-            sim_m[t, i] = (1 + ret) * a_lag + y
+            sim_m[t, i] = (1 + r) * a_lag + y
             
             # e. savings path
             sim_sav[t,i] = polsav_interp(a_lag,sim_z_idx[t,i])
@@ -897,13 +897,13 @@ def simulate_MarkovChain(pol_cons, pol_sav, params_sim):
                     sav_int = polsav_interp(sim_sav[t,i],i_zz)
                     if sav_int < grid_a[0] : sav_int = grid_a[0]     #ensure constraint binds
                 
-                    c_plus = (1 + ret) * sim_sav[t,i] + w*grid_z[i_zz] - polsav_interp(sim_sav[t,i],i_zz)
+                    c_plus = (1 + r) * sim_sav[t,i] + w*grid_z[i_zz] - polsav_interp(sim_sav[t,i],i_zz)
                         
                     #expectation of marginal utility of consumption
                     avg_marg_c_plus += pi[sim_z_idx[t,i],i_zz] * u_prime(c_plus)
                 
                 #euler error
-                euler_error_sim[t,i] = 1 - (u_prime_inv(beta*(1+ret)*avg_marg_c_plus) / sim_c[t,i])
+                euler_error_sim[t,i] = 1 - (u_prime_inv(beta*(1+r)*avg_marg_c_plus) / sim_c[t,i])
             
             
     # 4. transform euler error to log_10 and get max and average

@@ -689,7 +689,7 @@ def solve_hh(params_vfi):
     
 
     # a. Initialize
-    ret, w, beta, pi, grid_a, grid_z, sigma, maxit, tol = params_vfi
+    r, w, beta, pi, grid_a, grid_z, sigma, maxit, tol = params_vfi
     
     Nz = len(grid_z)
     Na = len(grid_a)
@@ -705,7 +705,7 @@ def solve_hh(params_vfi):
             for ia in prange(Na):
                 
                 # i. budget constraint 
-                c = (1+ret)*grid_a[ia] + w*grid_z[iz] - grid_a
+                c = (1+r)*grid_a[ia] + w*grid_z[iz] - grid_a
                 
                 # ii. utility and impose nonnegativity for consumption
                 util = utility(c, sigma)
@@ -719,7 +719,7 @@ def solve_hh(params_vfi):
                 pol_sav[iz,ia] = grid_a[np.argmax(RHS)]      #policy function for how much to save
             
             # obtain consumption policy function
-            pol_cons[iz,:] = (1+ret)*grid_a + w*grid_z[iz] - pol_sav[iz,:]
+            pol_cons[iz,:] = (1+r)*grid_a + w*grid_z[iz] - pol_sav[iz,:]
         
         # iv. calculate supremum norm
         dist = np.abs(VF-VF_old).max()
@@ -761,7 +761,7 @@ def simulate_MarkovChain(pol_cons, pol_sav, params_sim):
     """
     
     # 1. initialize
-    a0, z0, ret, w, simN, simT, grid_z, grid_a, sigma, beta, pi, seed = params_sim
+    a0, z0, r, w, simN, simT, grid_z, grid_a, sigma, beta, pi, seed = params_sim
     
     np.random.seed(seed)
     sim_sav = np.zeros((simT,simN))
@@ -818,7 +818,7 @@ def simulate_MarkovChain(pol_cons, pol_sav, params_sim):
             y = w*sim_z[t,i]
             
             # d. cash-on-hand path
-            sim_m[t, i] = (1 + ret) * a_lag + y
+            sim_m[t, i] = (1 + r) * a_lag + y
             
             # e. savings path
             sim_sav[t,i] = polsav_interp(a_lag,sim_z_idx[t,i])
@@ -849,13 +849,13 @@ def simulate_MarkovChain(pol_cons, pol_sav, params_sim):
                     sav_int = polsav_interp(sim_sav[t,i],i_zz)
                     if sav_int < grid_a[0] : sav_int = grid_a[0]     #ensure constraint binds
                     
-                    c_plus = (1 + ret) * sim_sav[t,i] + w*grid_z[i_zz] - polsav_interp(sim_sav[t,i],i_zz)
+                    c_plus = (1 + r) * sim_sav[t,i] + w*grid_z[i_zz] - polsav_interp(sim_sav[t,i],i_zz)
                         
                     #expectation of marginal utility of consumption
                     avg_marg_c_plus += pi[sim_z_idx[t,i],i_zz] * u_prime(c_plus)
                 
                 #euler error
-                euler_error_sim[t,i] = 1 - (u_prime_inv(beta*(1+ret)*avg_marg_c_plus) / sim_c[t,i])
+                euler_error_sim[t,i] = 1 - (u_prime_inv(beta*(1+r)*avg_marg_c_plus) / sim_c[t,i])
             
             
             

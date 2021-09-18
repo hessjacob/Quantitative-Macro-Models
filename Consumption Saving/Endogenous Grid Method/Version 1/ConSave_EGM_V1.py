@@ -238,6 +238,51 @@ class ConSaveEGMsmall:
     # 3. Household and Endogenous Grid Method #
     ###########################################
      
+    def solve_hh(self):
+        
+        """
+        Solves the household problem.
+        
+        *Output
+            - pol_cons: consumption policy function solution given prices
+            - pol_sav: savings policy function solution given prices
+            - a_star: endogenous grid
+            - it_hh: number of iterations to convergence
+        """
+    
+        # a. initialize and initial guess (consume everything. Step 2 in EGM algo)
+        
+        pol_cons_old = np.empty((self.Nz, self.Ns))
+        
+        for i_z, v_z in enumerate(self.grid_z):
+            pol_cons_old[i_z,:] = (1+self.r)*self.grid_sav + v_z*self.w 
+
+        # b. policy function iteration
+        
+        for it_hh in range(self.maxit):
+            
+            # i. iterate
+            pol_cons, a_star = self.egm_algo(pol_cons_old)
+            
+            # ii. calculate supremum norm
+            dist = np.abs(pol_cons - pol_cons_old).max()
+            
+            if dist < self.tol :
+                break
+            
+            pol_cons_old = np.copy(pol_cons)
+
+        # c. obtain savings policy function
+        pol_sav = np.empty([self.Nz, self.Ns])
+        
+        for i_z, v_z in enumerate(self.grid_z):
+            pol_sav[i_z,:] = (1+self.r)*self.grid_sav + v_z*self.w - pol_cons[i_z,:]
+            
+        
+        return pol_cons, pol_sav, a_star, it_hh
+
+
+
     def egm_algo(self, pol_cons_old):
            
         """
@@ -300,52 +345,8 @@ class ConSaveEGMsmall:
         
         return pol_cons, a_star             
     
-
-   
-    def solve_hh(self):
-        
-        """
-        Solves the household problem.
-        
-        *Output
-            - pol_cons: consumption policy function solution given prices
-            - pol_sav: savings policy function solution given prices
-            - a_star: endogenous grid
-            - it_hh: number of iterations to convergence
-        """
     
-        # a. initialize and initial guess (consume everything. Step 2 in EGM algo)
-        
-        pol_cons_old = np.empty((self.Nz, self.Ns))
-        
-        for i_z, v_z in enumerate(self.grid_z):
-            pol_cons_old[i_z,:] = (1+self.r)*self.grid_sav + v_z*self.w 
-
-        # b. policy function iteration
-        
-        for it_hh in range(self.maxit):
-            
-            # i. iterate
-            pol_cons, a_star = self.egm_algo(pol_cons_old)
-            
-            # ii. calculate supremum norm
-            dist = np.abs(pol_cons - pol_cons_old).max()
-            
-            if dist < self.tol :
-                break
-            
-            pol_cons_old = np.copy(pol_cons)
-
-        # c. obtain savings policy function
-        pol_sav = np.empty([self.Nz, self.Ns])
-        
-        for i_z, v_z in enumerate(self.grid_z):
-            pol_sav[i_z,:] = (1+self.r)*self.grid_sav + v_z*self.w - pol_cons[i_z,:]
-            
-        
-        return pol_cons, pol_sav, a_star, it_hh
-
-
+    
 
     ######################################
     # 4. Euler Equation Error Analysis  #
@@ -780,7 +781,7 @@ def simulate_MarkovChain(pol_cons, pol_sav, params_sim):
     """
     
     # 1. initialize
-    a0, z0, ret, w, simN, simT, grid_z, grid_sav, sigma, beta, pi, seed = params_sim
+    a0, z0, r, w, simN, simT, grid_z, grid_sav, sigma, beta, pi, seed = params_sim
     
     np.random.seed(seed)
     sim_sav = np.zeros((simT,simN))
@@ -837,7 +838,7 @@ def simulate_MarkovChain(pol_cons, pol_sav, params_sim):
             y = w*sim_z[t,i]
             
             # d. cash-on-hand path
-            sim_m[t, i] = (1 + ret) * a_lag + y
+            sim_m[t, i] = (1 + r) * a_lag + y
             
             # e. savings path
             sim_sav[t,i] = polsav_interp(a_lag,sim_z_idx[t,i])
@@ -870,13 +871,13 @@ def simulate_MarkovChain(pol_cons, pol_sav, params_sim):
                     sav_int = polsav_interp(sim_sav[t,i],i_zz)
                     if sav_int < grid_sav[0] : sav_int = grid_sav[0]     #ensure constraint binds
                 
-                    c_plus = (1 + ret) * sim_sav[t,i] + w*grid_z[i_zz] - sav_int
+                    c_plus = (1 + r) * sim_sav[t,i] + w*grid_z[i_zz] - sav_int
                         
                     #expectation of marginal utility of consumption
                     avg_marg_c_plus += pi[sim_z_idx[t,i],i_zz] * u_prime(c_plus)
                 
                 #euler error
-                euler_error_sim[t,i] = 1 - (u_prime_inv(beta*(1+ret)*avg_marg_c_plus) / sim_c[t,i])
+                euler_error_sim[t,i] = 1 - (u_prime_inv(beta*(1+r)*avg_marg_c_plus) / sim_c[t,i])
             
             
     # 4. transform euler eerror to log_10 and get max and average

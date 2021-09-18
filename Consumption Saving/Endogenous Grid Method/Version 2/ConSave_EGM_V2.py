@@ -622,6 +622,60 @@ class ConSaveEGM:
 # 1. Household and Endogenous Grid Method #
 ###########################################
 
+@njit   
+def solve_hh(params_egm):
+    
+    """
+    Solves the household problem.
+    
+    *Input
+        - params_egm: model parameters
+    
+    *Output
+        - pol_cons: consumption policy function solution given prices
+        - pol_sav: savings policy function solution given prices
+        - a_star: endogenous grid
+        - it_hh: number of iterations to convergence
+    """
+
+    # a. initialize and initial guess (consume everything. Step 2 in EGM algo)
+    r, w, beta, pi, grid_sav, grid_z, sigma, maxit, tol = params_egm
+    
+    Ns = len(grid_sav)
+    Nz = len(grid_z)
+    
+    pol_cons_old = np.zeros((Nz, Ns))
+    
+    for i_z, v_z in enumerate(grid_z):
+        pol_cons_old[i_z,:] = (1+r)*grid_sav + v_z*w 
+
+
+    # b. policy function iteration
+    
+    for it_hh in range(maxit):
+        
+        # i. iterate
+        pol_cons, a_star = egm_algo(pol_cons_old, params_egm)
+        
+        # ii. calculate supremum norm
+        dist = np.abs(pol_cons - pol_cons_old).max()
+        
+        if dist < tol :
+            break
+        
+        pol_cons_old = np.copy(pol_cons)
+
+    # c. obtain savings policy function
+    pol_sav = np.zeros((Nz, Ns))
+    
+    for i_z, v_z in enumerate(grid_z):
+        pol_sav[i_z,:] = (1+r)*grid_sav + v_z*w - pol_cons[i_z,:]
+        
+    
+    return pol_cons, pol_sav, a_star, it_hh
+
+
+
 @njit
 def egm_algo(pol_cons_old, params_egm):
        
@@ -638,7 +692,7 @@ def egm_algo(pol_cons_old, params_egm):
     """
        
     # a. initialize 
-    ret, w, beta, pi, grid_sav, grid_z, sigma, maxit, tol = params_egm
+    r, w, beta, pi, grid_sav, grid_z, sigma, maxit, tol = params_egm
     
     Nz = len(grid_z)
     Ns = len(grid_sav)
@@ -669,19 +723,19 @@ def egm_algo(pol_cons_old, params_egm):
  
             avg_marg_u_plus += weight * marg_u_plus
             
-        ee_rhs = (1 + ret) * beta * avg_marg_u_plus    
+        ee_rhs = (1 + r) * beta * avg_marg_u_plus    
  
         # d. find current consumption (step 4 EGM algo)
         c_tilde[i_z,:] = u_prime_inv(ee_rhs)
         
         # e. get the endogenous grid of the value of assets today (step 5 EGM algo) 
-        a_star[i_z,:] = (c_tilde[i_z,:] + grid_sav - grid_z[i_z]*w) / (1+ret)
+        a_star[i_z,:] = (c_tilde[i_z,:] + grid_sav - grid_z[i_z]*w) / (1+r)
         
         # f. update new consumption policy guess on savings grid
         for i_s, v_s in enumerate(grid_sav):
             
             if v_s <= a_star[i_z,0]:   #borrowing constrained, outside the grid range on the left
-                pol_cons[i_z, i_s] = (1+ret)*v_s + grid_sav[0] + grid_z[i_z]*w
+                pol_cons[i_z, i_s] = (1+r)*v_s + grid_sav[0] + grid_z[i_z]*w
                 
             elif  v_s >= a_star[i_z,-1]: # , linearly extrapolate, outside the grid range on the right
                 pol_cons[i_z, i_s] = c_tilde[i_z,-1] + (v_s-a_star[i_z,-1])*(c_tilde[i_z,-1] - c_tilde[i_z,-2])/(a_star[i_z,-1]-a_star[i_z,-2])
@@ -694,59 +748,6 @@ def egm_algo(pol_cons_old, params_egm):
 
 
 
-@njit   
-def solve_hh(params_egm):
-    
-    """
-    Solves the household problem.
-    
-    *Input
-        - params_egm: model parameters
-    
-    *Output
-        - pol_cons: consumption policy function solution given prices
-        - pol_sav: savings policy function solution given prices
-        - a_star: endogenous grid
-        - it_hh: number of iterations to convergence
-    """
-
-    # a. initialize and initial guess (consume everything. Step 2 in EGM algo)
-    ret, w, beta, pi, grid_sav, grid_z, sigma, maxit, tol = params_egm
-    
-    Ns = len(grid_sav)
-    Nz = len(grid_z)
-    
-    pol_cons_old = np.zeros((Nz, Ns))
-    
-    for i_z, v_z in enumerate(grid_z):
-        pol_cons_old[i_z,:] = (1+ret)*grid_sav + v_z*w 
-
-
-    # b. policy function iteration
-    
-    for it_hh in range(maxit):
-        
-        # i. iterate
-        pol_cons, a_star = egm_algo(pol_cons_old, params_egm)
-        
-        # ii. calculate supremum norm
-        dist = np.abs(pol_cons - pol_cons_old).max()
-        
-        if dist < tol :
-            break
-        
-        pol_cons_old = np.copy(pol_cons)
-
-    # c. obtain savings policy function
-    pol_sav = np.zeros((Nz, Ns))
-    
-    for i_z, v_z in enumerate(grid_z):
-        pol_sav[i_z,:] = (1+ret)*grid_sav + v_z*w - pol_cons[i_z,:]
-        
-    
-    return pol_cons, pol_sav, a_star, it_hh
-        
-    
 
 
 ####################
@@ -776,7 +777,7 @@ def simulate_MarkovChain(pol_cons, pol_sav, params_sim):
     
     # 1. initialization
     
-    a0, ret, w, simN, simT, grid_z, grid_sav, sigma, beta, pi, shock_history = params_sim
+    a0, r, w, simN, simT, grid_z, grid_sav, sigma, beta, pi, shock_history = params_sim
     
     sim_sav = np.zeros((simT,simN))
     sim_c = np.zeros((simT,simN))
@@ -820,7 +821,7 @@ def simulate_MarkovChain(pol_cons, pol_sav, params_sim):
             y = w*sim_z[t,i]
             
             # d. cash-on-hand path
-            sim_m[t, i] = (1 + ret) * a_lag + y
+            sim_m[t, i] = (1 + r) * a_lag + y
             
             # e. savings path
             sim_sav[t,i] = polsav_interp(a_lag,sim_z_idx[t,i])
@@ -853,13 +854,13 @@ def simulate_MarkovChain(pol_cons, pol_sav, params_sim):
                     sav_int = polsav_interp(sim_sav[t,i],i_zz)
                     if sav_int < grid_sav[0] : sav_int = grid_sav[0]     #ensure constraint binds
                 
-                    c_plus = (1 + ret) * sim_sav[t,i] + w*grid_z[i_zz] - polsav_interp(sim_sav[t,i],i_zz)
+                    c_plus = (1 + r) * sim_sav[t,i] + w*grid_z[i_zz] - polsav_interp(sim_sav[t,i],i_zz)
                         
                     #expectation of marginal utility of consumption
                     avg_marg_c_plus += pi[sim_z_idx[t,i],i_zz] * u_prime(c_plus)
                 
                 #euler error
-                euler_error_sim[t,i] = np.abs(1 - (u_prime_inv(beta*(1+ret)*avg_marg_c_plus) / sim_c[t,i]))
+                euler_error_sim[t,i] = np.abs(1 - (u_prime_inv(beta*(1+r)*avg_marg_c_plus) / sim_c[t,i]))
             
     
     # 4. transform euler eerror to log_10 and get max and average
