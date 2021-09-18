@@ -78,17 +78,17 @@ class ConSaveEGMsmall:
              self.params_discrete = self.grid_sav, self.Nz, self.pi, self.pi_stat, self.maxit, self.tol
             
         if self.simulate ==1 or self.distribution_method == 'monte carlo':
-            self.params_sim = self.a0, self.z0, self.ret, self.w, self.simN, self.simT, self.grid_z, self.grid_sav, \
+            self.params_sim = self.a0, self.z0, self.r, self.w, self.simN, self.simT, self.grid_z, self.grid_sav, \
                 self.sigma, self.beta, self.pi, self.seed
         
         #warnings 
         
         # We need (1+r)beta < 1 for convergence.
-        assert (1 + self.ret) * self.beta < 1, "Stability condition violated."
+        assert (1 + self.r) * self.beta < 1, "Stability condition violated."
         
         #We require the borrowing limit to be greater than the natural borriwing limit (or no ponzi condition).
         #The limit is where an agent can borrow and repay it in the next period with probability 1.
-        assert self.a_bar + 1e-6 > ((-1) * ((1+self.ret)/self.ret) * self.grid_z[0]), "Natural borrowing limit violated."
+        assert self.a_bar + 1e-6 > ((-1) * ((1+self.r)/self.r) * self.grid_z[0]), "Natural borrowing limit violated."
         
         if self.distribution_method != 'discrete' and self.distribution_method != 'eigenvector' and self.distribution_method != 'monte carlo' and self.distribution_method != 'none' :
             raise Exception("Stationary distribution approximation method incorrectly entered: Choose 'discrete', 'eigenvector', 'monte carlo' or 'none' ")
@@ -114,7 +114,7 @@ class ConSaveEGMsmall:
     
         # prices 
         self.w=1 
-        self.ret=0.04
+        self.r=0.04
 
         # b. iteration parameters
         self.tol = 1e-6  # tolerance for iterations
@@ -238,14 +238,13 @@ class ConSaveEGMsmall:
     # 3. Household and Endogenous Grid Method #
     ###########################################
      
-    def egm_algo(self, pol_cons_old, grid_sav):
+    def egm_algo(self, pol_cons_old):
            
         """
         Endogenous grid method to help solve the household problem.
         
         *Input
             - pol_cons_old: consumption policy function from previous iteration.
-            - grid_sav: savings grid
             
         *Output
             - pol_cons: updated consumption policy function
@@ -253,15 +252,14 @@ class ConSaveEGMsmall:
         """
         
         # a. initialize 
-        Ns = len(grid_sav)
-        c_tilde=np.empty((self.Nz, Ns))
-        a_star=np.empty((self.Nz, Ns))
-        pol_cons = np.empty((self.Nz, Ns))
+        c_tilde=np.empty((self.Nz, self.Ns))
+        a_star=np.empty((self.Nz, self.Ns))
+        pol_cons = np.empty((self.Nz, self.Ns))
         
         for i_z in range(self.Nz):
  
             # b. find RHS of euler equation (step 3 in EGM algo)
-            avg_marg_u_plus = np.zeros(Ns)
+            avg_marg_u_plus = np.zeros(self.Ns)
             
             for i_zz in range(self.Nz):
  
@@ -276,19 +274,19 @@ class ConSaveEGMsmall:
  
                 avg_marg_u_plus += weight * marg_u_plus
                 
-            ee_rhs = (1 + self.ret) * self.beta * avg_marg_u_plus    
+            ee_rhs = (1 + self.r) * self.beta * avg_marg_u_plus    
  
             # c. find current consumption (step 4 EGM algo)
             c_tilde[i_z,:] = self.u_prime_inv(ee_rhs)
             
             # d. get the endogenous grid of the value of assets today (step 5 EGM algo) 
-            a_star[i_z,:] = (c_tilde[i_z,:] + grid_sav - self.grid_z[i_z]*self.w) / (1+self.ret)
+            a_star[i_z,:] = (c_tilde[i_z,:] + self.grid_sav - self.grid_z[i_z]*self.w) / (1+self.r)
             
             # e. update new consumption policy guess on savings grid
-            for i_s, v_s in enumerate(grid_sav):
+            for i_s, v_s in enumerate(self.grid_sav):
                 
                 if v_s <= a_star[i_z,0]:   #borrowing constrained, outside the grid range on the left
-                    pol_cons[i_z, i_s] = (1+self.ret)*v_s + grid_sav[0] + self.grid_z[i_z]*self.w
+                    pol_cons[i_z, i_s] = (1+self.r)*v_s + self.grid_sav[0] + self.grid_z[i_z]*self.w
                     
                 elif  v_s >= a_star[i_z,-1]: # , linearly extrapolate, outside the grid range on the right
                     pol_cons[i_z, i_s] = c_tilde[i_z,-1] + (v_s-a_star[i_z,-1])*(c_tilde[i_z,-1] - c_tilde[i_z,-2])/(a_star[i_z,-1]-a_star[i_z,-2])
@@ -304,13 +302,10 @@ class ConSaveEGMsmall:
     
 
    
-    def solve_hh(self, grid_sav):
+    def solve_hh(self):
         
         """
         Solves the household problem.
-        
-        *Input
-            - grid_sav: savings grid
         
         *Output
             - pol_cons: consumption policy function solution given prices
@@ -321,19 +316,17 @@ class ConSaveEGMsmall:
     
         # a. initialize and initial guess (consume everything. Step 2 in EGM algo)
         
-        Ns = len(grid_sav)
-        
-        pol_cons_old = np.empty((self.Nz, Ns))
+        pol_cons_old = np.empty((self.Nz, self.Ns))
         
         for i_z, v_z in enumerate(self.grid_z):
-            pol_cons_old[i_z,:] = (1+self.ret)*grid_sav + v_z*self.w 
+            pol_cons_old[i_z,:] = (1+self.r)*self.grid_sav + v_z*self.w 
 
         # b. policy function iteration
         
         for it_hh in range(self.maxit):
             
             # i. iterate
-            pol_cons, a_star = self.egm_algo(pol_cons_old, grid_sav)
+            pol_cons, a_star = self.egm_algo(pol_cons_old)
             
             # ii. calculate supremum norm
             dist = np.abs(pol_cons - pol_cons_old).max()
@@ -344,10 +337,10 @@ class ConSaveEGMsmall:
             pol_cons_old = np.copy(pol_cons)
 
         # c. obtain savings policy function
-        pol_sav = np.empty([self.Nz, Ns])
+        pol_sav = np.empty([self.Nz, self.Ns])
         
         for i_z, v_z in enumerate(self.grid_z):
-            pol_sav[i_z,:] = (1+self.ret)*grid_sav + v_z*self.w - pol_cons[i_z,:]
+            pol_sav[i_z,:] = (1+self.r)*self.grid_sav + v_z*self.w - pol_cons[i_z,:]
             
         
         return pol_cons, pol_sav, a_star, it_hh
@@ -395,20 +388,20 @@ class ConSaveEGMsmall:
                 else:
                     
                     # ii. current consumption and initialize expected marginal utility
-                    c = (1 + self.ret) * s0 + self.w * z - a_plus
+                    c = (1 + self.r) * s0 + self.w * z - a_plus
                     
                     avg_marg_c_plus = 0
                     
                     # iii. expected marginal utility
                     for i_zz, z_plus in enumerate(self.grid_z):      #next period productivity
                     
-                        c_plus = (1 + self.ret) * a_plus + self.w * z_plus - interp(self.grid_sav, self.pol_sav[i_zz,:], a_plus)
+                        c_plus = (1 + self.r) * a_plus + self.w * z_plus - interp(self.grid_sav, self.pol_sav[i_zz,:], a_plus)
                         
                         #expectation of marginal utility of consumption
                         avg_marg_c_plus += self.pi[i_z,i_zz] * u_prime(c_plus)
                     
                     # iv. compute euler error
-                    euler_error[i_z, i_s] = 1 - u_prime_inv(self.beta*(1+self.ret)*avg_marg_c_plus) / c
+                    euler_error[i_z, i_s] = 1 - u_prime_inv(self.beta*(1+self.r)*avg_marg_c_plus) / c
                     
        
         # ii. transform euler error with log_10. take max and average
@@ -534,7 +527,7 @@ class ConSaveEGMsmall:
         # a. solve household problem 
         print("\nSolving household problem...")
         
-        self.pol_cons, self.pol_sav, self.a_star, self.it_hh = self.solve_hh(self.grid_sav)
+        self.pol_cons, self.pol_sav, self.a_star, self.it_hh = self.solve_hh()
         
         if self.it_hh < self.maxit-1:
             print(f"Policy function convergence in {self.it_hh} iterations.")

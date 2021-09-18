@@ -73,23 +73,23 @@ class ConSaveVFIsmall:
         
         #pack parameters for jitted functions
         
-        self.params_vfi = self.ret, self.w, self.beta, self.pi, self.grid_z, self.sigma, self.maxit, self.tol
+        self.params_vfi = self.r, self.w, self.beta, self.pi, self.grid_a, self.grid_z, self.sigma, self.maxit, self.tol
         
         if distribution_method == 'discrete':
             self.params_discrete = self.grid_a, self.grid_a_fine, self.Nz, self.pi, self.pi_stat, self.maxit, self.tol
             
         if self.simulate ==1 or self.distribution_method == 'monte carlo':
-            self.params_sim = self.a0, self.z0, self.ret, self.w, self.simN, self.simT, self.grid_z, self.grid_a, \
+            self.params_sim = self.a0, self.z0, self.r, self.w, self.simN, self.simT, self.grid_z, self.grid_a, \
                 self.sigma, self.beta, self.pi, self.seed
                 
         # warnings
         
         # We need (1+r)beta < 1 for convergence.
-        assert (1 + self.ret) * self.beta < 1, "Stability condition violated."
+        assert (1 + self.r) * self.beta < 1, "Stability condition violated."
         
         #We require the borrowing limit to be greater than the natural borriwing limit (or no ponzi condition).
         #The limit is where an agent can borrow and repay it in the next period with probability 1.
-        assert self.a_bar + 1e-6 > ((-1) * ((1+self.ret)/self.ret) * self.grid_z[0]), "Natural borrowing limit violated."
+        assert self.a_bar + 1e-6 > ((-1) * ((1+self.r)/self.r) * self.grid_z[0]), "Natural borrowing limit violated."
         
         if self.distribution_method != 'discrete' and self.distribution_method != 'eigenvector' and self.distribution_method != 'monte carlo' and self.distribution_method != 'none' :
             raise Exception("Stationary distribution approximation method incorrectly entered: Choose 'discrete', 'eigenvector', 'monte carlo' or 'none' ")
@@ -114,7 +114,7 @@ class ConSaveVFIsmall:
     
         # prices 
         self.w=1 
-        self.ret=0.04
+        self.r=0.04
         
         # b. iteration parameters
         self.tol = 1e-6  # tolerance for iterations
@@ -268,19 +268,19 @@ class ConSaveVFIsmall:
                 else:
                     
                     # ii. current consumption and initialize expected marginal utility
-                    c = (1 + self.ret) * a + self.w * z - a_plus
+                    c = (1 + self.r) * a + self.w * z - a_plus
                     avg_marg_c_plus = 0
                     
                     # iii. expected marginal utility
                     for i_zz, z_plus in enumerate(self.grid_z):      #next period productivity
                     
-                        c_plus = (1 + self.ret) * a_plus + self.w * z_plus - interp(self.grid_a, self.pol_sav[i_zz,:], a_plus)
+                        c_plus = (1 + self.r) * a_plus + self.w * z_plus - interp(self.grid_a, self.pol_sav[i_zz,:], a_plus)
                         
                         #expectation of marginal utility of consumption
                         avg_marg_c_plus += self.pi[i_z,i_zz] * u_prime(c_plus)
                     
                     # iv. compute euler error
-                    euler_error[i_z, i_a] = 1 - u_prime_inv(self.beta*(1+self.ret)*avg_marg_c_plus) / c
+                    euler_error[i_z, i_a] = 1 - u_prime_inv(self.beta*(1+self.r)*avg_marg_c_plus) / c
                     
        
         # ii. transform euler error with log_10. take max and average
@@ -407,7 +407,7 @@ class ConSaveVFIsmall:
         # a. solve household problem
         print("\nSolving household problem...")
         
-        self.VF, self.pol_sav, self.pol_cons, self.it_hh = solve_hh(self.grid_a, self.params_vfi)
+        self.VF, self.pol_sav, self.pol_cons, self.it_hh = solve_hh(self.params_vfi)
         
         if self.it_hh < self.maxit-1:
             print(f"Value function convergence in {self.it_hh} iterations.")
@@ -673,12 +673,11 @@ def utility(c, sigma):
 ##########################################
 
 @njit(parallel=True)
-def solve_hh(grid_a, params_vfi):
+def solve_hh(params_vfi):
     """
     Solves the household problem by value function iteration.
     
     *Input
-        - grid_a: asset grid
         - params_vfi: model parameters
     
     *Output
@@ -690,7 +689,7 @@ def solve_hh(grid_a, params_vfi):
     
 
     # a. Initialize
-    ret, w, beta, pi, grid_z, sigma, maxit, tol = params_vfi
+    ret, w, beta, pi, grid_a, grid_z, sigma, maxit, tol = params_vfi
     
     Nz = len(grid_z)
     Na = len(grid_a)
