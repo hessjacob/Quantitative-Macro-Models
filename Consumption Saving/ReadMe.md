@@ -10,13 +10,14 @@ Partial equilibrium solution (prices are exogenously set) for heterogenous agent
 2) Exogenous borrowing constraint which the user can choose. 
 3) Calculation of the euler equation error both across the entire grid space and through a simulation.
 
-**Codes and Solution Methods**
+**Solution Methods**
 
-- Value Function Iteration
-  * Version 1 -- 2 income states. 
-  * Version 2 -- Continuous income process which is discretely approximated up to seven different income states using the Rouwenhorst method. 
-  
+- Value Function Iteration with Discretization
+    
+- Policy Function Iteration on Euler Equation with Linear Interpolation
+
 - Endogenous Grid Method
-  * Version 1 -- 2 income states. 
-  * Version 2 -- Continuous income process which is discretely approximated up to seven different income states using the Rouwenhorst method. 
   
+**Versions**
+- Version 1 -- 2 income states. 
+- Version 2 -- Continuous income process which is discretely approximated up to seven different income states using the Rouwenhorst method. 
