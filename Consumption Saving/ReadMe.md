@@ -10,7 +10,7 @@ Partial equilibrium solution (prices are exogenously set) for heterogenous agent
 - Endogenous Grid Method
   
 **Versions**
-- Version 1 -- 2 income states. 
+- Version 1 -- Two income states and a transition matrix both of which can be set by the user.
 - Version 2 -- Continuous income process which is discretely approximated up to seven different income states using the Rouwenhorst method. 
 
 **Code Features** 
