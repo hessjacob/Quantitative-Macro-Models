@@ -31,7 +31,7 @@ Required packages:
        * to install 'conda install -c conda-forge interpolation'
        * https://github.com/EconForge/interpolation.py
 
-Note: If simulation tells you to increase grid size, increase self.a_max in function setup_parameters.
+Note: If simulation tells you to increase grid size, increase self.sav_max in function setup_parameters.
 """
 
 
