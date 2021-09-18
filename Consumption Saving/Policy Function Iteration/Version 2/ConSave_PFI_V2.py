@@ -20,7 +20,7 @@ the entire in the state space.
 Aknowledgements: I wrote the algorithms using the following resources :
     1) Gianluca Violante's global methods and distribution approximation notes (https://sites.google.com/a/nyu.edu/glviolante/teaching/quantmacro)
     2) Heer and Maussner 2nd ed. Ch. 7
-    3) Raul Santaeulalia-Llopis' ABHI Methods Notes (http://r-santaeulalia.net/)
+    3) Raul Santaeulalia-Llopis' ABHI Notes (http://r-santaeulalia.net/)
     4) Alexander Ludwig's notes (https://alexander-ludwig.com/)
     5) Jeppe Druedahl (https://github.com/JeppeDruedahl) and NumEconCopenhagen (https://github.com/NumEconCopenhagen)
     
@@ -33,8 +33,6 @@ Required packages:
        * https://github.com/EconForge/interpolation.py
 
 Note 1: If simulation tells you to increase grid size, increase self.a_max in function setup_parameters.
-Note 2: Be advised that by default there are many grid points which makes the eigenvector method quite slow (calculation up to 20 minutes using
-grid_a, 75 minutes using grid_a_fine). This is due to numpy.linalg.eig.
 """
 
 import time

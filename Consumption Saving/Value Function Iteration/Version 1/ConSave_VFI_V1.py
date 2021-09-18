@@ -18,7 +18,7 @@ One by simulating the model and calulating the error for each individual. The ot
 the entire in the state space.
 
 Aknowledgements: I wrote the algorithms using the following resources :
-    1) Gianluca Violante's gloval methods and distribution approximation notes (https://sites.google.com/a/nyu.edu/glviolante/teaching/quantmacro)
+    1) Gianluca Violante's global methods and distribution approximation notes (https://sites.google.com/a/nyu.edu/glviolante/teaching/quantmacro)
     2) Heer and Maussner 2nd ed. Ch. 7
     3) Raul Santaeulalia-Llopis' Value Function Methods Notes (http://r-santaeulalia.net/)
     4) Alexander Ludwig's notes (https://alexander-ludwig.com/)
@@ -522,7 +522,7 @@ class ConSaveVFIsmall:
             plt.title('Value Function')
             plt.legend(['z='+str(self.grid_z[0]),'z='+str(self.grid_z[1])])
             plt.xlabel('Assets')
-            #plt.savefig('value_function_vfi_v1.pdf')
+            plt.savefig('value_function_vfi_v1.pdf')
             plt.show()
             
             plt.plot(self.grid_a, self.pol_sav.T)

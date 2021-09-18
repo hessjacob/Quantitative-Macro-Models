@@ -1,7 +1,7 @@
 """
 Author: Jacob Hess 
 First Version: January 2021
-Revised: September 2021
+This Version: September 2021
 
 Description: This code solves the consumption/saving problem (aka the income flucuation problem) for the infinitely 
 household in partial equilibrium using the endogenous grid method. The continuous income process is discretely approximated 
@@ -18,9 +18,9 @@ One by simulating the model and calulating the error for each individual. The ot
 the entire in the state space.
 
 Aknowledgements: I wrote the algorithms using the following resources :
-    1) Gianluca Violante's gloval methods and distribution approximation notes (https://sites.google.com/a/nyu.edu/glviolante/teaching/quantmacro)
+    1) Gianluca Violante's global methods and distribution approximation notes (https://sites.google.com/a/nyu.edu/glviolante/teaching/quantmacro)
     2) Heer and Maussner 2nd ed. Ch. 7
-    3) Raul Santaeulalia-Llopis' Value Function Methods Notes (http://r-santaeulalia.net/)
+    3) Raul Santaeulalia-Llopis' ABHI Notes (http://r-santaeulalia.net/)
     4) Alexander Ludwig's notes (https://alexander-ludwig.com/)
     5) Jeppe Druedahl (https://github.com/JeppeDruedahl) and NumEconCopenhagen (https://github.com/NumEconCopenhagen)
     

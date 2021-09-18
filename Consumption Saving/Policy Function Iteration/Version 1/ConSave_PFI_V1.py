@@ -19,7 +19,7 @@ the entire in the state space.
 Aknowledgements: I wrote the algorithms using the following resources :
     1) Gianluca Violante's global methods and distribution approximation notes (https://sites.google.com/a/nyu.edu/glviolante/teaching/quantmacro)
     2) Heer and Maussner 2nd ed. Ch. 7
-    3) Raul Santaeulalia-Llopis' ABHI Methods Notes (http://r-santaeulalia.net/)
+    3) Raul Santaeulalia-Llopis' ABHI Notes (http://r-santaeulalia.net/)
     4) Alexander Ludwig's notes (https://alexander-ludwig.com/)
     5) Jeppe Druedahl (https://github.com/JeppeDruedahl) and NumEconCopenhagen (https://github.com/NumEconCopenhagen)
     
