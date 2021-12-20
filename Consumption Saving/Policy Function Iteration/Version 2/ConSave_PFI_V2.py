@@ -32,7 +32,7 @@ Required packages:
        * to install 'conda install -c conda-forge interpolation'
        * https://github.com/EconForge/interpolation.py
 
-Note 1: If simulation tells you to increase grid size, increase self.a_max in function setup_parameters.
+Note: If simulation tells you to increase grid size, increase self.a_max in function setup_parameters.
 """
 
 import time
@@ -197,7 +197,7 @@ class ConSavePFI:
 
 
     #######################
-    # 2. helper functions #
+    # 2. Helper Functions #
     ######################
     
     def make_grid(self, min_val, max_val, num, curv):  
@@ -218,79 +218,10 @@ class ConSavePFI:
         
     
     
-        
-        
-    ######################################
-    # 3. Euler Equation Error Analysis  #
-    #####################################
-    
-
-    def ee_error(self):
-        """
-        Computes the euler equation error over the entire state space with a finer grid.
-        
-        *Output
-            * Log10 euler_error
-            * max Log10 euler error
-            * average Log10 euler error
-        """
-        
-                
-        # a. initialize
-        euler_error = np.zeros((self.Nz, self.Na_fine))
-        
-        # b. helper function
-        u_prime = lambda c : c**(-self.sigma)
-        
-        u_prime_inv = lambda x : x ** (-1/self.sigma)
-        
-        # c. calculate euler error at all fine grid points
-        
-        for i_z, z in enumerate(self.grid_z):       #current income shock
-            for i_a, a in enumerate(self.grid_a_fine):   #current asset level
-                
-                # i. interpolate savings policy function fine grid point
-            
-                a_plus = interp(self.grid_a, self.pol_sav[i_z,:], a)
-                
-                # liquidity constrained, do not calculate error
-                if a_plus <= 0:     
-                    euler_error[i_z, i_a] = np.nan
-                
-                # interior solution
-                else:
-                    
-                    # ii. current consumption and initialize expected marginal utility
-                    c = (1 + self.r) * a + self.w * z - a_plus
-                    avg_marg_c_plus = 0
-                    
-                    # iii. expected marginal utility
-                    for i_zz, z_plus in enumerate(self.grid_z):      #next period productivity
-                    
-                        c_plus = (1 + self.r) * a_plus + self.w * z_plus - interp(self.grid_a, self.pol_sav[i_zz,:], a_plus)
-                        
-                        #expectation of marginal utility of consumption
-                        avg_marg_c_plus += self.pi[i_z,i_zz] * u_prime(c_plus)
-                    
-                    # iv. compute euler error
-                    euler_error[i_z, i_a] = 1 - u_prime_inv(self.beta*(1+self.r)*avg_marg_c_plus) / c
-                    
-       
-        # ii. transform euler error with log_10. take max and average
-        euler_error = np.log10(np.abs(euler_error))
-        max_error =  np.nanmax(np.nanmax(euler_error, axis=1))
-        avg_error = np.nanmean(euler_error) 
-        
-        
-        
-        return euler_error, max_error, avg_error
-        
-    
-    
     
     
     ####################################################
-    # 4. Stationary Distribution: Eigenvector Method   #
+    # 3. Stationary Distribution: Eigenvector Method   #
     ####################################################
     
     
@@ -379,6 +310,76 @@ class ConSavePFI:
         stationary_pdf=stationary_pdf/np.sum(np.sum(stationary_pdf,axis=0)) 
         
         return stationary_pdf, Q
+    
+    
+    
+    
+    
+    ######################################
+    # 4. Euler Equation Error Analysis  #
+    #####################################
+    
+
+    def ee_error(self):
+        """
+        Computes the euler equation error over the entire state space with a finer grid.
+        
+        *Output
+            * Log10 euler_error
+            * max Log10 euler error
+            * average Log10 euler error
+        """
+        
+                
+        # a. initialize
+        euler_error = np.zeros((self.Nz, self.Na_fine))
+        
+        # b. helper function
+        u_prime = lambda c : c**(-self.sigma)
+        
+        u_prime_inv = lambda x : x ** (-1/self.sigma)
+        
+        # c. calculate euler error at all fine grid points
+        
+        for i_z, z in enumerate(self.grid_z):       #current income shock
+            for i_a, a in enumerate(self.grid_a_fine):   #current asset level
+                
+                # i. interpolate savings policy function fine grid point
+            
+                a_plus = interp(self.grid_a, self.pol_sav[i_z,:], a)
+                
+                # liquidity constrained, do not calculate error
+                if a_plus <= 0:     
+                    euler_error[i_z, i_a] = np.nan
+                
+                # interior solution
+                else:
+                    
+                    # ii. current consumption and initialize expected marginal utility
+                    c = (1 + self.r) * a + self.w * z - a_plus
+                    avg_marg_c_plus = 0
+                    
+                    # iii. expected marginal utility
+                    for i_zz, z_plus in enumerate(self.grid_z):      #next period productivity
+                    
+                        c_plus = (1 + self.r) * a_plus + self.w * z_plus - interp(self.grid_a, self.pol_sav[i_zz,:], a_plus)
+                        
+                        #expectation of marginal utility of consumption
+                        avg_marg_c_plus += self.pi[i_z,i_zz] * u_prime(c_plus)
+                    
+                    # iv. compute euler error
+                    euler_error[i_z, i_a] = 1 - u_prime_inv(self.beta*(1+self.r)*avg_marg_c_plus) / c
+                    
+       
+        # ii. transform euler error with log_10. take max and average
+        euler_error = np.log10(np.abs(euler_error))
+        max_error =  np.nanmax(np.nanmax(euler_error, axis=1))
+        avg_error = np.nanmean(euler_error) 
+        
+        
+        
+        return euler_error, max_error, avg_error
+    
     
     
     
