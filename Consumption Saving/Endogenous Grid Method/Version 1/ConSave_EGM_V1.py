@@ -54,7 +54,7 @@ sns.set(style='whitegrid')
 class ConSaveEGMsmall:
 
     ############
-    # 1. setup #
+    # 1. Setup #
     ############
 
     def __init__(self, a_bar = 0,              #select borrowing limit
@@ -74,7 +74,7 @@ class ConSaveEGMsmall:
         
         #pack parameters for jitted functions
         
-        if distribution_method == 'discrete':
+        if self.distribution_method == 'discrete':
              self.params_discrete = self.grid_sav, self.Nz, self.pi, self.pi_stat, self.maxit, self.tol
             
         if self.simulate ==1 or self.distribution_method == 'monte carlo':
@@ -172,7 +172,7 @@ class ConSaveEGMsmall:
 
 
     #######################
-    # 2. helper functions #
+    # 2. Helper Functions #
     ######################
     
     def make_grid(self, min_val, max_val, num, curv):  
@@ -348,78 +348,9 @@ class ConSaveEGMsmall:
     
     
 
-    ######################################
-    # 4. Euler Equation Error Analysis  #
-    #####################################
-    
 
-    def ee_error(self):
-        """
-        Computes the euler equation error over the entire state space with a finer grid.
-        
-        *Output
-            * Log10 euler_error
-            * max Log10 euler error
-            * average Log10 euler error
-        """
-        
-                
-        # a. initialize
-        euler_error = np.zeros((self.Nz, self.Ns))
-        
-        # b. helper function
-        u_prime = lambda c : c**(-self.sigma)
-        
-        u_prime_inv = lambda x : x ** (-1/self.sigma)
-        
-        # c. calculate euler error at all fine grid points
-        
-        for i_z, z in enumerate(self.grid_z):       #current income shock
-            for i_s, s0 in enumerate(self.grid_sav):   #current asset level
-                
-                # i. interpolate savings policy function fine grid point
-            
-                a_plus = interp(self.grid_sav, self.pol_sav[i_z,:], s0)
-                
-                # liquidity constrained, do not calculate error
-                if a_plus <= 0:     
-                    euler_error[i_z, i_s] = np.nan
-                
-                # interior solution
-                else:
-                    
-                    # ii. current consumption and initialize expected marginal utility
-                    c = (1 + self.r) * s0 + self.w * z - a_plus
-                    
-                    avg_marg_c_plus = 0
-                    
-                    # iii. expected marginal utility
-                    for i_zz, z_plus in enumerate(self.grid_z):      #next period productivity
-                    
-                        c_plus = (1 + self.r) * a_plus + self.w * z_plus - interp(self.grid_sav, self.pol_sav[i_zz,:], a_plus)
-                        
-                        #expectation of marginal utility of consumption
-                        avg_marg_c_plus += self.pi[i_z,i_zz] * u_prime(c_plus)
-                    
-                    # iv. compute euler error
-                    euler_error[i_z, i_s] = 1 - u_prime_inv(self.beta*(1+self.r)*avg_marg_c_plus) / c
-                    
-       
-        # ii. transform euler error with log_10. take max and average
-        euler_error = np.log10(np.abs(euler_error))
-        max_error =  np.nanmax(np.nanmax(euler_error, axis=1))
-        avg_error = np.nanmean(euler_error) 
-        
-        
-        
-        return euler_error, max_error, avg_error
-        
-
- 
-    
-    
     #####################################################
-    # 5. Stationary Distribution: Eigenvector Method   #
+    # 4. Stationary Distribution: Eigenvector Method   #
     ####################################################
     
     def eigen_stationary_density_egm(self):
@@ -508,7 +439,79 @@ class ConSaveEGMsmall:
         stationary_pdf=stationary_pdf/np.sum(np.sum(stationary_pdf,axis=0)) 
         
         return stationary_pdf, Q
+
+
+
+
+
+    ######################################
+    # 5. Euler Equation Error Analysis  #
+    #####################################
+    
+
+    def ee_error(self):
+        """
+        Computes the euler equation error over the entire state space.
         
+        *Output
+            * Log10 euler_error
+            * max Log10 euler error
+            * average Log10 euler error
+        """
+        
+                
+        # a. initialize
+        euler_error = np.zeros((self.Nz, self.Ns))
+        
+        # b. helper function
+        u_prime = lambda c : c**(-self.sigma)
+        
+        u_prime_inv = lambda x : x ** (-1/self.sigma)
+        
+        # c. calculate euler error at all grid points
+        
+        for i_z, z in enumerate(self.grid_z):       #current income shock
+            for i_s, s0 in enumerate(self.grid_sav):   #current asset level
+                
+                # i. interpolate savings policy function grid point
+            
+                a_plus = interp(self.grid_sav, self.pol_sav[i_z,:], s0)
+                
+                # liquidity constrained, do not calculate error
+                if a_plus <= 0:     
+                    euler_error[i_z, i_s] = np.nan
+                
+                # interior solution
+                else:
+                    
+                    # ii. current consumption and initialize expected marginal utility
+                    c = (1 + self.r) * s0 + self.w * z - a_plus
+                    
+                    avg_marg_c_plus = 0
+                    
+                    # iii. expected marginal utility
+                    for i_zz, z_plus in enumerate(self.grid_z):      #next period productivity
+                    
+                        c_plus = (1 + self.r) * a_plus + self.w * z_plus - interp(self.grid_sav, self.pol_sav[i_zz,:], a_plus)
+                        
+                        #expectation of marginal utility of consumption
+                        avg_marg_c_plus += self.pi[i_z,i_zz] * u_prime(c_plus)
+                    
+                    # iv. compute euler error
+                    euler_error[i_z, i_s] = 1 - u_prime_inv(self.beta*(1+self.r)*avg_marg_c_plus) / c
+                    
+       
+        # ii. transform euler error with log_10. take max and average
+        euler_error = np.log10(np.abs(euler_error))
+        max_error =  np.nanmax(np.nanmax(euler_error, axis=1))
+        avg_error = np.nanmean(euler_error) 
+        
+        
+        
+        return euler_error, max_error, avg_error
+        
+
+ 
     
     
     #####################
@@ -780,7 +783,7 @@ def simulate_MarkovChain(pol_cons, pol_sav, params_sim):
         - euler_error_sim : error when the euler equation equality holds
     """
     
-    # 1. initialize
+    # a. initialize
     a0, z0, r, w, simN, simT, grid_z, grid_sav, sigma, beta, pi, seed = params_sim
     
     np.random.seed(seed)
@@ -794,7 +797,7 @@ def simulate_MarkovChain(pol_cons, pol_sav, params_sim):
     
     
     
-    # 2. helper functions
+    # b. helper functions
     
     # savings policy function interpolant
     polsav_interp = lambda a, z: interp(grid_sav, pol_sav[z, :], a)
@@ -807,7 +810,7 @@ def simulate_MarkovChain(pol_cons, pol_sav, params_sim):
     
     
     
-    # 3. simulate markov chain
+    # c. simulate markov chain
     for t in range(simT):   #time
 
         draw = np.linspace(0, 1, simN)
@@ -815,7 +818,7 @@ def simulate_MarkovChain(pol_cons, pol_sav, params_sim):
         
         for i in prange(simN):  #individual
 
-            # a. states 
+            # i. states 
             if t == 0:
                 z_lag_idx = z0[i]
                 a_lag = a0[i]
@@ -824,7 +827,7 @@ def simulate_MarkovChain(pol_cons, pol_sav, params_sim):
                 z_lag_idx = sim_z_idx[t-1,i]
                 a_lag = sim_sav[t-1,i]
                 
-            # b. shock realization. 0 for low state. 1 for high state.
+            # ii. shock realization. 0 for low state. 1 for high state.
             if draw[i] <= pi[z_lag_idx, 1]:     #state transition condition
             
                 sim_z_idx[t,i] = 1      #index
@@ -834,23 +837,22 @@ def simulate_MarkovChain(pol_cons, pol_sav, params_sim):
                 sim_z_idx[t,i] = 0      #index
                 sim_z[t,i] = grid_z[sim_z_idx[t,i]]     #shock value
                 
-            # c. income
+            # iii. income
             y = w*sim_z[t,i]
             
-            # d. cash-on-hand path
+            # iv. cash-on-hand path
             sim_m[t, i] = (1 + r) * a_lag + y
             
-            # e. savings path
+            # v. savings path
             sim_sav[t,i] = polsav_interp(a_lag,sim_z_idx[t,i])
             if sim_sav[t,i] < grid_sav[0] : sim_sav[t,i] = grid_sav[0]     #ensure constraint binds
             
-            # f. consumption path
+            # vi. consumption path
             
             sim_c[t,i] = sim_m[t, i] - sim_sav[t,i]   
             
             
-            
-            # g. error evaluation
+            # vii. error evaluation
             
             check_out=False
             if sim_sav[t,i] >= pol_sav[sim_z_idx[t,i],-1]:
@@ -880,10 +882,10 @@ def simulate_MarkovChain(pol_cons, pol_sav, params_sim):
                 euler_error_sim[t,i] = 1 - (u_prime_inv(beta*(1+r)*avg_marg_c_plus) / sim_c[t,i])
             
             
-    # 4. transform euler eerror to log_10 and get max and average
+    # d. transform euler eerror to log_10 and get max and average
     euler_error_sim = np.log10(np.abs(euler_error_sim))
                 
-    # 5. grid size evaluation
+    # e. grid size evaluation
     frac_outside = edge/grid_sav.size
     if frac_outside > 0.01 :
         raise Exception('Increase grid size!')
@@ -894,7 +896,7 @@ def simulate_MarkovChain(pol_cons, pol_sav, params_sim):
 
 
 ###############################################################################
-# 4. Stationary Distribution: Discrete Approximation and Forward Iteration   #
+# 2. Stationary Distribution: Discrete Approximation and Forward Iteration   #
 ##############################################################################
 
 @njit
