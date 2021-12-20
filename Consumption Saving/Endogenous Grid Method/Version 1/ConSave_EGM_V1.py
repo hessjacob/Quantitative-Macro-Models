@@ -2,7 +2,7 @@
 """
 Author: Jacob Hess 
 First Version: January 2021
-This Version: September 2021
+This Version: December 2021
 
 Description: This code solves the consumption/saving (aka the income flucuation problem) for the infinitely household 
 in partial equilibrium using the endogenous grid method. 
