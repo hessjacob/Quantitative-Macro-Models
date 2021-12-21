@@ -132,7 +132,6 @@ Under the assumption complete markets these models solve for a representative ag
 - DSGE 
   * Based on Christiano et. al. (2005) which adds more nominal frictions and shocks to better replicate macro data. 
   * My version is calibrated to match data moments but it can easily be estimated using bayesian techniques. 
-  * Macro data is cleaned and included
 
 
 # Restuccia and Rogerson
