@@ -15,7 +15,7 @@ This is a collection of code for quantitative macroeconomic models that I have w
   * RANK models
 
 # Aiyagari 
-Stationary equilibrium solution in a production economy with incomplete markets and no aggregate uncertainty. Heterogenous agents are infinitely lived and are exposed to idiosyncratic income risk. I solve the versions of the model with three different solution methods to solve the household problem. In addition, the user can choose from three different methods to calculate the stationary distribution. Version 2 can be used to replicate Aiyagari (1994).
+Stationary equilibrium solution in a production economy with incomplete markets and no aggregate uncertainty. Heterogenous agents are infinitely lived and are exposed to idiosyncratic income risk. I solve the versions of the model with three different solution methods to solve the household problem. In addition, the user can choose from three different methods to calculate the stationary distribution. Version 2 can be used to replicate Aiyagari (1994). The labor supply is perfectly inelastic (exogenous).
 
 **Solution Methods**
 
