@@ -218,30 +218,6 @@ class AiyagariEGM:
         
         return grd
     
-    def stationary_mc(self, pi):
-        """
-        Returns the stationary/ergodic distribution of the markov chain.
-        
-        *Input
-            - pi: markov chain transition matrix
-            
-        *Output
-            - stataionary distribution of the markov chain
-        """
-        
-        p = np.copy(pi)  #create a copy of pi 
-        nrows,ncols = p.shape
-        for i in range(nrows):
-            p[i,i] = p[i,i]-1
-        
-        q = p[:,0:nrows-1]
-        # appends column vector
-        q = np.c_[q,np.ones(nrows)]  
-        x = np.zeros(nrows-1)
-        # appends element in row vector
-        x = np.r_[x,1]
-        
-        return np.dot(x, np.linalg.inv(q))
     
     
     ##############
