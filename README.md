@@ -15,23 +15,29 @@ This is a collection of code for quantitative macroeconomic models that I have w
   * RANK models
 
 # Aiyagari 
-Stationary equilibrium solution in a production economy with incomplete markets and no aggregate uncertainty. Heterogenous agents are infinitely lived and are exposed to idiosyncratic income risk. The versions differ in how the household problem is solved and how the income shock process is specified.
+Stationary equilibrium solution in a production economy with incomplete markets and no aggregate uncertainty. Heterogenous agents are infinitely lived and are exposed to idiosyncratic income risk. I solve the versions of the model with three different solution methods to solve the household problem. In addition, the user can choose from three different methods to calculate the stationary distribution. Version 2 can be used to replicate Aiyagari (1994).
 
-**Shared features in all versions is** 
+**Solution Methods**
 
-1) Plots the wealth distribution, capital supply and demand and policy functions.
-2) Exogenous borrowing constraint which the user can choose. 
-3) Unless otherwise specified, a monte carlo simulation is used to approximate the stationary distribution
+- Value Function Iteration with Discretization
+    
+- Policy Function Iteration on Euler Equation with Linear Interpolation
 
-**Codes and Solution Methods**
-
-- Value Function Iteration
-  * Version 1 -- 2 income states. 
-  * Version 2 -- Code will replicate Aiyagari (1994). A slight difference is that the continuous income process which is discretely approximated up to seven different income states using the Rouwenhorst method rather than Tauchen. The Tauchen method is available in the code should the user want an exact replication. 
-  
 - Endogenous Grid Method
-  * Version 1 -- 2 income states. 
-  * Version 2 -- Code will replicate Aiyagari (1994). A slight difference is that the continuous income process which is discretely approximated up to seven different income states using the Rouwenhorst method rather than Tauchen. The Tauchen method is available in the code should the user want an exact replication. 
+  
+**Versions**
+- Version 1 -- Two income states and a transition matrix both of which can be set by the user.
+- Version 2 -- Continuous income process which is discretely approximated up to seven different income states using the Rouwenhorst method. The Tauchen method is available in the code should the user want an exact replication. 
+
+**Code Features** 
+
+1) The user can choose to find the stationary distribution with one of three methods:
+   * Discrete approximation of the density function which conducts a fixed point iteration with linear interpolation
+   * Eigenvector method to solve for the exact stationary density.
+   * Monte carlo simulation with 50,000 households. 
+2) Exogenous borrowing constraint which the user can choose. 
+3) Calculation of the euler equation error both across the entire grid space and through a simulation.
+4) Plots the capital supply and demand as functions of the capital stock. 
 
 
 # Consumption Saving in Incomplete Markets (aka the income flucuation problem)
@@ -88,7 +94,7 @@ There is ongoing exogenous and endogenous entry/exit in the steady state. Firms 
 **Version 3 -- Firm Dynamics (Hopenhayn 1992) and the Neoclassical Growth Model (firm owns capital)**
 
 * The code embeds the standard neoclassical growth model into Hopenhayn (1992) and solves for the stationary equilibrium in which there is continuous 
-entry/exit of firms. The difference with this and version 2 is that the firm owns the capital stock and makes the investment decision. The model is a simplified general equilbrium extension of Clementi and Palazzo (2019). I solve the household problem using value function iteration and approximate the stationary joint distribution of firms by fixed point iteration on the law of motion.
+entry/exit of firms. The difference with this and version 2 is that the firm owns the capital stock and makes the investment decision. The model is a simplified general equilbrium extension of Clementi and Palazzo (2016). I solve the household problem using value function iteration and approximate the stationary joint distribution of firms by fixed point iteration on the law of motion.
 
 * The only friction in this economy is capital adjustment costs.
 
