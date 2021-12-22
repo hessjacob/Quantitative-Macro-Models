@@ -263,75 +263,10 @@ class AiyagariEGM:
     
 
 
-        
-    
-    ######################################
-    # 3. Euler Equation Error Analysis  #
-    #####################################
-    
 
-    def ee_error(self):
-        """
-        Computes the euler equation error over the entire state space.
-        
-        *Output
-            * Log10 euler_error
-            * max Log10 euler error
-            * average Log10 euler error
-        """
-        
-                
-        # a. initialize
-        euler_error = np.zeros((self.Nz, self.Ns))
-        
-        # b. calculate euler error at all grid points
-        
-        for i_z, z in enumerate(self.grid_z):       #current income shock
-            for i_s, s0 in enumerate(self.grid_sav):   #current asset level
-                
-                # i. interpolate savings policy function grid point
-            
-                a_plus = interp(self.grid_sav, self.pol_sav[i_z,:], s0)
-                
-                # liquidity constrained, do not calculate error
-                if a_plus <= 0:     
-                    euler_error[i_z, i_s] = np.nan
-                
-                # interior solution
-                else:
-                    
-                    # ii. current consumption and initialize expected marginal utility
-                    c = (1 + self.r_ss) * s0 + self.w_ss * z - a_plus
-                    
-                    avg_marg_c_plus = 0
-                    
-                    # iii. expected marginal utility
-                    for i_zz, z_plus in enumerate(self.grid_z):      #next period productivity
-                    
-                        c_plus = (1 + self.r_ss) * a_plus + self.w_ss * z_plus - interp(self.grid_sav, self.pol_sav[i_zz,:], a_plus)
-                        
-                        #expectation of marginal utility of consumption
-                        avg_marg_c_plus += self.pi[i_z,i_zz] * self.u_prime(c_plus)
-                    
-                    # iv. compute euler error
-                    euler_error[i_z, i_s] = 1 - self.u_prime_inv(self.beta*(1+self.r_ss)*avg_marg_c_plus) / c
-                    
-       
-        # ii. transform euler error with log_10. take max and average
-        euler_error = np.log10(np.abs(euler_error))
-        max_error =  np.nanmax(np.nanmax(euler_error, axis=1))
-        avg_error = np.nanmean(euler_error) 
-        
-        
-        
-        return euler_error, max_error, avg_error
-    
-    
-    
-    
-    
+   
     #####################################################
-    # 4. Stationary Distribution: Eigenvector Method   #
+    # 3. Stationary Distribution: Eigenvector Method   #
     ####################################################
     
     def eigen_stationary_density_egm(self, a_star):
@@ -423,10 +358,75 @@ class AiyagariEGM:
         stationary_pdf=stationary_pdf/np.sum(np.sum(stationary_pdf,axis=0)) 
         
         return stationary_pdf, Q
-        
+       
+    
+    
         
 
- 
+    ######################################
+    # 4. Euler Equation Error Analysis  #
+    #####################################
+    
+
+    def ee_error(self):
+        """
+        Computes the euler equation error over the entire state space.
+        
+        *Output
+            * Log10 euler_error
+            * max Log10 euler error
+            * average Log10 euler error
+        """
+        
+                
+        # a. initialize
+        euler_error = np.zeros((self.Nz, self.Ns))
+        
+        # b. calculate euler error at all grid points
+        
+        for i_z, z in enumerate(self.grid_z):       #current income shock
+            for i_s, s0 in enumerate(self.grid_sav):   #current asset level
+                
+                # i. interpolate savings policy function grid point
+            
+                a_plus = interp(self.grid_sav, self.pol_sav[i_z,:], s0)
+                
+                # liquidity constrained, do not calculate error
+                if a_plus <= 0:     
+                    euler_error[i_z, i_s] = np.nan
+                
+                # interior solution
+                else:
+                    
+                    # ii. current consumption and initialize expected marginal utility
+                    c = (1 + self.r_ss) * s0 + self.w_ss * z - a_plus
+                    
+                    avg_marg_c_plus = 0
+                    
+                    # iii. expected marginal utility
+                    for i_zz, z_plus in enumerate(self.grid_z):      #next period productivity
+                    
+                        c_plus = (1 + self.r_ss) * a_plus + self.w_ss * z_plus - interp(self.grid_sav, self.pol_sav[i_zz,:], a_plus)
+                        
+                        #expectation of marginal utility of consumption
+                        avg_marg_c_plus += self.pi[i_z,i_zz] * self.u_prime(c_plus)
+                    
+                    # iv. compute euler error
+                    euler_error[i_z, i_s] = 1 - self.u_prime_inv(self.beta*(1+self.r_ss)*avg_marg_c_plus) / c
+                    
+       
+        # ii. transform euler error with log_10. take max and average
+        euler_error = np.log10(np.abs(euler_error))
+        max_error =  np.nanmax(np.nanmax(euler_error, axis=1))
+        avg_error = np.nanmean(euler_error) 
+        
+        
+        
+        return euler_error, max_error, avg_error
+     
+        
+     
+        
      
     ###############################
     # 5. Stationary Equilibrium   #
@@ -673,20 +673,20 @@ class AiyagariEGM:
             plt.title("Savings Policy Function")
             plt.plot([self.a_bar,self.sav_max], [self.a_bar,self.sav_max],linestyle=':')
             plt.xlabel('Assets')
-            plt.savefig('savings_policyfunction_egm_aiyagari.pdf')
+            #plt.savefig('savings_policyfunction_egm_aiyagari.pdf')
             plt.show()
             
             plt.plot(self.grid_sav, self.pol_cons.T)
             plt.title("Consumption Policy Function")
             plt.xlabel('Assets')
-            plt.savefig('consumption_policyfunction_egm_aiyagari.pdf')
+            #plt.savefig('consumption_policyfunction_egm_aiyagari.pdf')
             plt.show()
             
             if self.full_euler_error:
                 plt.plot(self.grid_sav, self.euler_error.T)
                 plt.title('Log10 Euler Equation Error')
                 plt.xlabel('Assets')
-                plt.savefig('log10_euler_error_egm_aiyagari.pdf')
+                #plt.savefig('log10_euler_error_egm_aiyagari.pdf')
                 plt.show()
                 
             if self.plot_supply_demand:
@@ -702,7 +702,7 @@ class AiyagariEGM:
                 plt.legend(['Demand','Supply','Supply in CM'])
                 plt.xlabel('Capital')
                 plt.ylabel('Interest Rate')
-                plt.savefig('capital_supply_demand_aiyagari.pdf')
+                #plt.savefig('capital_supply_demand_aiyagari.pdf')
                 plt.show()
             
             
@@ -714,7 +714,7 @@ class AiyagariEGM:
                 plt.plot(self.grid_sav, self.stationary_wealth_pdf)
                 plt.title("Stationary Wealth Density (Discrete Approx.)") if self.distribution_method == 'discrete' else plt.title("Stationary Wealth Density (Eigenvector Method)")
                 plt.xlabel('Assets')
-                plt.savefig('wealth_density_egm_aiyagari_discrete.pdf') if self.distribution_method == 'discrete' else plt.savefig('wealth_density_egm_aiyagari_eigenvector.pdf')
+                #plt.savefig('wealth_density_egm_aiyagari_discrete.pdf') if self.distribution_method == 'discrete' else plt.savefig('wealth_density_egm_aiyagari_eigenvector.pdf')
                 plt.show()
                 
             
@@ -723,7 +723,7 @@ class AiyagariEGM:
                 sns.histplot(self.ss_sim_sav, bins=100, stat='density')
                 plt.title("Stationary Wealth Density (Monte Carlo Approx.)")
                 plt.xlabel('Assets')
-                plt.savefig('wealth_density_egm_aiyagari_montecarlo.pdf')
+                #plt.savefig('wealth_density_egm_aiyagari_montecarlo.pdf')
                 plt.show()
         
 
