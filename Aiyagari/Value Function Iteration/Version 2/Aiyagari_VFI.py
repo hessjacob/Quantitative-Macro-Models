@@ -172,33 +172,32 @@ class AiyagariVFI:
 
         
     def setup_discretization(self):
-        
+           
         # a. discretely approximate the continuous income process 
         self.mc = qe.markov.approximation.rouwenhorst(self.Nz, self.z_bar, self.sigma_z, self.rho_z)
         #self.mc = qe.markov.approximation.tauchen(self.rho_z, self.sigma_z, self.z_bar, 3, self.Nz)
-
+    
         # b. transition matrix and states
         self.pi = self.mc.P
-        self.pi_stat = self.mc.stationary_distributions.T
+        self.pi_stat = self.mc.stationary_distributions.T.ravel()   #ravel to resize array from 2d to 1d for rv_discrete
         self.grid_z = np.exp(self.mc.state_values)
-
-        # c. initial distribution of z
-        z_diag = np.diag(self.pi ** 1000)
-        self.ini_p_z = z_diag / np.sum(z_diag)
         
-        # d. income shock sequence for each individual for simulation
+        avg_z = np.sum(self.grid_z * self.pi_stat)
+        self.grid_z = self.grid_z / avg_z  # force mean one
+        
+        # c. income shock sequence for each individual for simulation
         if self.distribution_method == 'monte carlo':
          
-            # initial income shock drawn for each individual from initial distribution
-            random_z = rv_discrete(values=(np.arange(self.Nz),self.ini_p_z), seed=self.seed)
-            z0_idx = random_z.rvs(size=self.simN)
-            self.z0 = self.grid_z[z0_idx]   #initial state for each individual
-            
             # draw income shocks for each individual
             self.shock_history= np.zeros((self.simT, self.simN))
             
+            # initial income shock drawn for each individual from initial distribution
+            random_z = rv_discrete(values=(np.arange(self.Nz),self.pi_stat), seed=self.seed)
+            z0_idx = random_z.rvs(size=self.simN)
+            
             for n in range(self.simN) :
-                seed_sim = self.seed + n    #unique seed for each individual
+                seed_sim = self.seed + n 
+                
                 self.shock_history[:,n] = self.mc.simulate_indices(self.simT, init=z0_idx[n], random_state=seed_sim)       
         
     
