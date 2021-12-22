@@ -170,21 +170,20 @@ class AiyagariEGM:
     
         # b. transition matrix and states
         self.pi = self.mc.P
-        self.pi_stat = self.mc.stationary_distributions.T
+        self.pi_stat = self.mc.stationary_distributions.T.ravel()   #ravel to resize array from 2d to 1d for rv_discrete
         self.grid_z = np.exp(self.mc.state_values)
-    
-        # c. initial distribution of z
-        z_diag = np.diag(self.pi ** 1000)
-        self.ini_p_z = z_diag / np.sum(z_diag)
         
-        # d. income shock sequence for each individual for simulation
+        avg_z = np.sum(self.grid_z * self.pi_stat)
+        self.grid_z = self.grid_z / avg_z  # force mean one
+        
+        # c. income shock sequence for each individual for simulation
         if self.distribution_method == 'monte carlo':
          
             # draw income shocks for each individual
             self.shock_history= np.zeros((self.simT, self.simN))
             
              # initial income shock drawn for each individual from initial distribution
-            random_z = rv_discrete(values=(np.arange(self.Nz),self.ini_p_z), seed=self.seed)
+            random_z = rv_discrete(values=(np.arange(self.Nz),self.pi_stat), seed=self.seed)
             z0_idx = random_z.rvs(size=self.simN)
             
             for n in range(self.simN) :

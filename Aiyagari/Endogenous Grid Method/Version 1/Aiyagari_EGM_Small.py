@@ -154,17 +154,14 @@ class AiyagariEGMSmall:
         # b. stationary distribution of markov chain
         self.pi_stat = self.stationary_mc(self.pi)
 
-         # c. initial distribution of z for simulation and ensure productivity grid sums to one
-        z_diag = np.diag(self.pi ** 1000)
-        self.ini_p_z = z_diag / np.sum(z_diag)
-        
-        avg_z = np.sum(self.grid_z * self.ini_p_z)
+        # c. ensure productivity grid sums to one
+        avg_z = np.sum(self.grid_z * self.pi_stat)
         self.grid_z = self.grid_z / avg_z  # force mean one
 
         # d. initial income shock drawn for each individual from initial distribution
         if self.distribution_method == 'monte carlo':
             self.z0 = np.zeros(self.simN, dtype=np.int32)
-            self.z0[np.linspace(0, 1, self.simN) > self.ini_p_z[0]] = 1
+            self.z0[np.linspace(0, 1, self.simN) > self.pi_stat[0]] = 1
         
 
     
@@ -831,7 +828,7 @@ class AiyagariEGMSmall:
                 plt.title("Joint Stationary Density (Discrete Approx.)") if self.distribution_method == 'discrete' else plt.title("Joint Stationary Density (Eigenvector Method)")
                 plt.xlabel('Assets')
                 plt.legend(['z='+str(self.grid_z[0]),'z='+str(self.grid_z[1])])
-                #plt.savefig('joint_density_egm_aiyagari_small_discrete.pdf') if self.distribution_method == 'discrete' else plt.savefig('joint_density_egm_aiyagari_small_eigenvector.pdf')
+                plt.savefig('joint_density_egm_aiyagari_small_discrete.pdf') if self.distribution_method == 'discrete' else plt.savefig('joint_density_egm_aiyagari_small_eigenvector.pdf')
                 plt.show()
                 
                 # marginal wealth density
