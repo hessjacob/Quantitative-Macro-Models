@@ -1,7 +1,5 @@
 # Quantitative-Macro-Models
-This is a collection of code for quantitative macroeconomic models that I have written as personal learning exercises. All the codes, aside from the RANK block, have heterogenous agents and are written in python using numba. You can find different versions under each topic where I might use different computational methods, increase the scale of the model and/or adjust some key assumptions. I have worked hard to make them readable and very fast so that they might help others who are interested in learning about these topics. References used can be found in each file.    
-
-Please remember to cite me.
+This is a collection of code for quantitative macroeconomic models that I have written as personal learning exercises. All the codes, aside from the RANK block, have heterogenous agents and are written in python using numba. You can find different versions under each topic where I might use different computational methods, increase the scale of the model and/or adjust some key assumptions. I have worked hard to make them readable and very fast so that they might help others who are interested in learning about these topics. References used can be found in each file. Please remember to cite me if you use my codes.
 
 **Quick Guide**
 - Heterogenous households
