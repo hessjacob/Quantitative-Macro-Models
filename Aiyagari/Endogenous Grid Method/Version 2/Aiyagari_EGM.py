@@ -947,10 +947,7 @@ def simulate_MonteCarlo(pol_cons, pol_sav, r, w, params_sim):
     
     # c. simulate markov chain
     for t in range(simT):   #time
-
-        draw = np.linspace(0, 1, simN)
-        np.random.shuffle(draw)
-        
+    
         #calculate cross-sectional moments for agg. capital
         if t <= 0:
             sim_k[t] = np.mean(a0)
