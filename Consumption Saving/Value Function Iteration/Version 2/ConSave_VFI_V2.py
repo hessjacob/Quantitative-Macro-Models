@@ -84,7 +84,7 @@ class ConSaveVFI:
             self.params_discrete = self.grid_a, self.grid_a_fine, self.Nz, self.pi, self.pi_stat, self.maxit, self.tol
             
         if self.simulate ==1 or self.distribution_method == 'monte carlo':
-            self.params_sim = self.a0, self.z0, self.r, self.w, self.simN, self.simT, self.grid_z, self.grid_a, \
+            self.params_sim = self.a0, self.r, self.w, self.simN, self.simT, self.grid_z, self.grid_a, \
                 self.sigma, self.beta, self.pi, self.shock_history
         
         # warnings
@@ -173,26 +173,25 @@ class ConSaveVFI:
 
         # b. transition matrix and states
         self.pi = self.mc.P
-        self.pi_stat = self.mc.stationary_distributions.T
+        self.pi_stat = self.mc.stationary_distributions.T.ravel()   #ravel to resize array from 2d to 1d for rv_discrete
         self.grid_z = np.exp(self.mc.state_values)
-
-        # c. initial distribution of z
-        z_diag = np.diag(self.pi ** 1000)
-        self.ini_p_z = z_diag / np.sum(z_diag)
         
-        # d. income shock sequence for each individual for simulation
-        if self.simulate or self.distribution_method == 'monte carlo':
+        avg_z = np.sum(self.grid_z * self.pi_stat)
+        self.grid_z = self.grid_z / avg_z  # force mean one
+        
+        # c. income shock sequence for each individual for simulation
+        if self.distribution_method == 'monte carlo':
          
-            # initial income shock drawn for each individual from initial distribution
-            random_z = rv_discrete(values=(np.arange(self.Nz),self.ini_p_z), seed=self.seed)
-            z0_idx = random_z.rvs(size=self.simN)
-            self.z0 = self.grid_z[z0_idx]   #initial state for each individual
-            
             # draw income shocks for each individual
             self.shock_history= np.zeros((self.simT, self.simN))
             
+            # initial income shock drawn for each individual from initial distribution
+            random_z = rv_discrete(values=(np.arange(self.Nz),self.pi_stat), seed=self.seed)
+            z0_idx = random_z.rvs(size=self.simN)
+            
             for n in range(self.simN) :
-                seed_sim = self.seed + n    #unique seed for each individual
+                seed_sim = self.seed + n 
+                
                 self.shock_history[:,n] = self.mc.simulate_indices(self.simT, init=z0_idx[n], random_state=seed_sim)       
         
 
@@ -750,7 +749,7 @@ def simulate_MarkovChain(pol_cons, pol_sav, params_sim):
     
     # 1. initialization
     
-    a0, z0, r, w, simN, simT, grid_z, grid_a, sigma, beta, pi, shock_history = params_sim
+    a0, r, w, simN, simT, grid_z, grid_a, sigma, beta, pi, shock_history = params_sim
     
     sim_sav = np.zeros((simT,simN))
     sim_c = np.zeros((simT,simN))

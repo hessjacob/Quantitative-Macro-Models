@@ -155,19 +155,16 @@ class ConSavePFIsmall:
         
        # b. stationary distribution of markov chain
         self.pi_stat = self.stationary_mc(self.pi)
-        
-        # c. initial distribution of z for simulation and ensure produtcity grid sums to one
-        z_diag = np.diag(self.pi ** 1000)
-        self.ini_p_z = z_diag / np.sum(z_diag)
-        
-        avg_z = np.sum(self.grid_z * self.ini_p_z)
+
+        # c. ensure productivity grid sums to one
+        avg_z = np.sum(self.grid_z * self.pi_stat)
         self.grid_z = self.grid_z / avg_z  # force mean one
-        
+
         # d. initial income shock drawn for each individual from initial distribution
-        if self.simulate or self.distribution_method == 'monte carlo':
+        if self.distribution_method == 'monte carlo':
             self.z0 = np.zeros(self.simN, dtype=np.int32)
-            self.z0[np.linspace(0, 1, self.simN) > self.ini_p_z[0]] = 1
-        
+            self.z0[np.linspace(0, 1, self.simN) > self.pi_stat[0]] = 1
+            
         # e. finer grid for density approximation and euler error
         if self.distribution_method == 'discrete' or self.distribution_method == 'eigenvector' or self.full_euler_error :
             self.grid_a_fine = self.make_grid(self.a_min, self.a_max, self.Na_fine, self.curv)  
