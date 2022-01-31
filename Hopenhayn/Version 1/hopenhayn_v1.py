@@ -2,7 +2,8 @@
 """
 Author: Jacob Hess
 
-Date: January 2021
+First Version: January 2021
+This Version: January 2022
 
 Description: Replicates Hopenhayn (1992) which finds the stationary equilibrium in a firm dynamics model. I follow the 
 algorithm laid out by Gianluca Violante's and Chris Edmond's notes where I solve the incumbant firm problem with value 
