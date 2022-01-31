@@ -163,7 +163,7 @@ class Hopenhayn:
         # c. given prices and hiring decision, iterate on incumbent firm vf
         for it in range(self.maxit):
             
-            VF = firm_profit + self.beta * np.dot(self.pi, VF_old).clip(min=0)
+            VF = firm_profit + self.beta * np.maximum(np.dot(self.pi, VF_old),0)
             
             dist = np.abs(VF_old - VF).max()
         
@@ -172,11 +172,11 @@ class Hopenhayn:
            
             VF_old = np.copy(VF)
 
-        # d. enter/stay in the market policy function 
-        pol_enter = np.ones(self.Nz)*(VF>0)
+        # d. continue in the market policy function 
+        pol_continue = np.ones(self.Nz)*(np.dot(self.pi, VF)>=0)
         
         # e. productivity exit threshold
-        idx = np.searchsorted(pol_enter, 1) #index of self.pol_enter closest to one on the left
+        idx = np.searchsorted(pol_continue, 1) #index of self.pol_continue closest to one on the left
         exit_cutoff = self.grid_z[idx]
         
         # f. alternative way to do steps d and e
@@ -185,9 +185,9 @@ class Hopenhayn:
         
         #exit_cutoff = self.grid_z[idx]
         #pol_exit = np.where(self.grid_z < exit_cutoff, 1, 0)
-        #pol_enter = 1 - pol_exit
+        #pol_continue = 1 - pol_exit
 
-        return VF, firm_profit, firm_output, pol_n, pol_enter, exit_cutoff
+        return VF, firm_profit, firm_output, pol_n, pol_continue, exit_cutoff
     
     
     
@@ -235,8 +235,8 @@ class Hopenhayn:
         return price
             
     
-    def solve_invariant_distribution(self, m, pol_enter):
-        pi_tilde = (self.pi * pol_enter.reshape(self.Nz, 1)).T
+    def solve_invariant_distribution(self, m, pol_continue):
+        pi_tilde = (self.pi * pol_continue.reshape(self.Nz, 1)).T
         I = np.eye(self.Nz)
          
         return m * ( np.dot( la.inv(I - pi_tilde), self.nu ) )
@@ -259,11 +259,11 @@ class Hopenhayn:
         self.price_ss = self.find_equilibrium_price()
         
         # b. Use the equilibrium price to recover incumbent firm solution
-        self.VF, self.firm_profit, self.firm_output, self.pol_n, self.pol_enter, self.exit_cutoff = self.incumbent_firm(self.price_ss)
+        self.VF, self.firm_profit, self.firm_output, self.pol_n, self.pol_continue, self.exit_cutoff = self.incumbent_firm(self.price_ss)
         
         # c. Invariant (productivity) distribution with endogenous exit. Here assume m=1 which 
         #will come in handy in the next step.
-        self.distrib_stationary_0 = self.solve_invariant_distribution(1, self.pol_enter)
+        self.distrib_stationary_0 = self.solve_invariant_distribution(1, self.pol_continue)
         
         # d. Rather than iterating on market clearing condition to find the equilibrium mass of entrants (m_star)
         # we can compute it analytically (Edmond's notes ch. 3 pg. 25)
@@ -288,7 +288,7 @@ class Hopenhayn:
         self.total_employment = np.dot(self.pol_n, self.distrib_stationary)
         self.average_firm_size = self.total_employment / self.total_mass
         self.exit_rate = self.m_star / self.total_mass
-        #self.exit_rate = 1-(np.sum(self.pi.T*self.distrib_stationary_0*self.pol_enter)/np.sum(self.distrib_stationary_0)) #alternative calculation
+        #self.exit_rate = 1-(np.sum(self.pi.T*self.distrib_stationary_0*self.pol_continue)/np.sum(self.distrib_stationary_0)) #alternative calculation
         
         # h. plot
         
@@ -297,7 +297,7 @@ class Hopenhayn:
             plt.axvline(self.exit_cutoff, color='tab:red', linestyle='--', alpha=0.7)
             plt.axhline(0, color='tab:green', linestyle='--', alpha=0.7)
             plt.title('Incumbant Firm Value Function')
-            plt.legend(['Value Function', 'Exit Threshold='+str(self.exit_cutoff.round(2)),'VF <= 0'])
+            plt.legend(['Value Function', 'Exit Threshold='+str(self.exit_cutoff.round(2))])
             plt.xlabel('Productivity level')
             #plt.savefig('value_func_hopehayn.pdf')
             plt.show()
