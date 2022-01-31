@@ -180,14 +180,17 @@ class HopenhaynV2:
         # c. given prices and hiring decision, iterate on incumbent firm vf
         for it in range(self.maxit):
             
-            VF = firm_profit + (1-self.lambdaa) * self.beta * np.dot(self.pi, VF_old).clip(min=0)
+            VF = firm_profit + (1-self.lambdaa) * self.beta * np.dot(self.pi, VF_old)
+            
+            VF = VF*(VF>0)
             
             dist = np.abs(VF - VF_old).max()
         
             if dist < self.tol :
                break
-           
-            VF_old = np.copy(VF)
+            
+            else:
+                VF_old = np.copy(VF)
 
         # d. enter/stay in the market policy function 
         pol_enter = np.ones(self.Nz)*(VF>0)
@@ -200,7 +203,7 @@ class HopenhaynV2:
         """
         Using the bisection method this function finds the unique equilibrium wage that clears markets and satisfies the free entry condition. 
         
-        In equilibrium the free entry condition (or the present discounted value) is zero. The free entry condition is where the expected firm value over 
+        In equilibrium the free entry condition (or the present discounted value of the potential entrant) is zero. The free entry condition is where the expected firm value over 
         the initial productivity distribution equals the cost of entry (ce).
         """
         
@@ -209,16 +212,16 @@ class HopenhaynV2:
         
         # i. ensure that wmin is low enough for bisection to work
         VF_min = self.incumbent_firm(wmin)[0]
-        PV_entrant_min = self.beta * np.dot(VF_min.clip(min=0), self.nu) - self.ce  #present discounted value of a potential entrant
+        VF_entrant_min = np.dot(VF_min, self.nu) - self.ce  #present discounted value of a potential entrant
         
-        assert PV_entrant_min > 0, 'wmin is set too high.'
+        assert VF_entrant_min > 0, 'wmin is set too high.'
         
         
         # ii. ensure that wmax is high enough for bisection to work. In case that it is not this runs a loop to find a high enough bound
             
         for i_pv in range(self.maxit):
             VF_max = self.incumbent_firm(wmax)[0]
-            PV_entrant_max = self.beta * np.dot(VF_max.clip(min=0), self.nu) - self.ce  #present discounted value of a potential entrant
+            PV_entrant_max = np.dot(VF_max, self.nu) - self.ce  #present discounted value of a potential entrant
             
             if PV_entrant_max < 0:
                 break
@@ -240,7 +243,7 @@ class HopenhaynV2:
             VF = self.incumbent_firm(wage_guess)[0]
         
             # iii. Free entry condition or present discounted value of a potential entrant. 
-            free_entry_cond = self.beta * np.dot(VF.clip(min=0), self.nu) - self.ce
+            free_entry_cond = np.dot(VF, self.nu) - self.ce
             
             # iv. check if free entry condition is satisfied (present discounted value of a potential entrant equals zero)
             if np.abs(free_entry_cond) < self.tol:
@@ -319,7 +322,7 @@ class HopenhaynV2:
         
         
         # d. Mass of entrants (m_star) in the ss equilibrium. Because labor is supplied inelastically we can use the labor market clearing condition
-        # to solve m_star
+        # to solve m_star, This uses the condition that aggregate labor demand is equal to 1 = N_ss = m_star*np.dot(self.stat_dist_hat, self.pol_n)
         self.m_star = 1/np.dot(self.stat_dist_hat, self.pol_n)
         
         # e. Rescale to get invariant (productivity) distribution (mass of plants)
@@ -350,6 +353,7 @@ class HopenhaynV2:
         self.C_ss = self.Yfc_ss - self.delta*self.K_ss - self.ce*self.m_star
         
         self.average_firm_size = self.N_ss / np.sum(self.stat_dist)
+        #np.dot(self.stat_dist_pdf, self.pol_n)  #alternative calculation
         self.exit_rate = 1 - np.sum((1-self.lambdaa)*np.dot(self.pi.T, self.stat_dist_hat)*self.pol_enter)/np.sum(self.stat_dist_hat) 
         #self.exit_rate_alt = self.m_star / np.sum(self.stat_dist)    #alternative calculation
         
@@ -362,9 +366,8 @@ class HopenhaynV2:
             
             plt.plot(self.grid_z, self.VF)
             plt.axvline(self.exit_cutoff, color='tab:red', linestyle='--', alpha=0.7)
-            plt.axhline(0, color='tab:green', linestyle='--', alpha=0.7)
             plt.title('Incumbant Firm Value Function')
-            plt.legend(['Value Function', 'Exit Threshold='+str(self.exit_cutoff.round(2)),'VF <= 0'])
+            plt.legend(['Value Function', 'Entry/Exit Threshold='+str(self.exit_cutoff.round(2))])
             plt.xlabel('Productivity level')
             #plt.savefig('vf_hopehaynv2.pdf')
             plt.show()
@@ -373,7 +376,7 @@ class HopenhaynV2:
             plt.plot(self.grid_z, self.dist_emp_pdf)
             plt.title('Stationary PDF' )
             plt.xlabel('Productivity level')
-            plt.ylabel('Density')
+            plt.ylabel('Percent')
             plt.legend(['Productivity','Employment'])
             #plt.savefig('pdf_hopehaynv2.pdf')
             plt.show()
@@ -423,7 +426,7 @@ class HopenhaynV2:
         print("Stationary Equilibrium")
         print("-----------------------------------------")
         print(f"ss wage  = {self.wage_ss:.2f}")
-        print(f"exit rate = {self.exit_rate:.3f}")
+        print(f"entry/exit rate = {self.exit_rate:.3f}")
         print(f"avg. firm size = {self.average_firm_size:.2f}")
         print(f"\nss output = {self.Y_ss:.2f}")
         print(f"ss tfp = {self.TFP_ss:.2f}")
