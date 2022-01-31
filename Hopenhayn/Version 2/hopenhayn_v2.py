@@ -367,7 +367,7 @@ class HopenhaynV2:
             plt.plot(self.grid_z, self.VF)
             plt.axvline(self.exit_cutoff, color='tab:red', linestyle='--', alpha=0.7)
             plt.title('Incumbant Firm Value Function')
-            plt.legend(['Value Function', 'Entry/Exit Threshold='+str(self.exit_cutoff.round(2))])
+            plt.legend(['Value Function', 'Exit Threshold='+str(self.exit_cutoff.round(2))])
             plt.xlabel('Productivity level')
             #plt.savefig('vf_hopehaynv2.pdf')
             plt.show()
