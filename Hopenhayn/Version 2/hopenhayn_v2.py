@@ -212,7 +212,7 @@ class HopenhaynV2:
         
         # i. ensure that wmin is low enough for bisection to work
         VF_min = self.incumbent_firm(wmin)[0]
-        VF_entrant_min = np.dot(VF_min, self.nu) - self.ce  #present discounted value of a potential entrant
+        VF_entrant_min = self.beta*np.dot(VF_min, self.nu) - self.ce  #present discounted value of a potential entrant
         
         assert VF_entrant_min > 0, 'wmin is set too high.'
         
@@ -221,7 +221,7 @@ class HopenhaynV2:
             
         for i_pv in range(self.maxit):
             VF_max = self.incumbent_firm(wmax)[0]
-            PV_entrant_max = np.dot(VF_max, self.nu) - self.ce  #present discounted value of a potential entrant
+            PV_entrant_max = self.beta*np.dot(VF_max, self.nu) - self.ce  #present discounted value of a potential entrant
             
             if PV_entrant_max < 0:
                 break
@@ -243,7 +243,7 @@ class HopenhaynV2:
             VF = self.incumbent_firm(wage_guess)[0]
         
             # iii. Free entry condition or present discounted value of a potential entrant. 
-            free_entry_cond = np.dot(VF, self.nu) - self.ce
+            free_entry_cond = self.beta*np.dot(VF, self.nu) - self.ce
             
             # iv. check if free entry condition is satisfied (present discounted value of a potential entrant equals zero)
             if np.abs(free_entry_cond) < self.tol:
