@@ -180,9 +180,7 @@ class HopenhaynV2:
         # c. given prices and hiring decision, iterate on incumbent firm vf
         for it in range(self.maxit):
             
-            VF = firm_profit + (1-self.lambdaa) * self.beta * np.dot(self.pi, VF_old)
-            
-            VF = VF*(VF>0)
+            VF = firm_profit + (1-self.lambdaa) * self.beta * np.maximum(np.dot(self.pi, VF_old),0)
             
             dist = np.abs(VF - VF_old).max()
         
@@ -192,10 +190,10 @@ class HopenhaynV2:
             else:
                 VF_old = np.copy(VF)
 
-        # d. enter/stay in the market policy function 
-        pol_enter = np.ones(self.Nz)*(VF>0)
+        # d. continue/stay in the market policy function 
+        pol_continue = np.ones(self.Nz)*(np.dot(self.pi, VF)>=0)
 
-        return VF, pol_enter
+        return VF, pol_continue
     
     
     
@@ -212,7 +210,7 @@ class HopenhaynV2:
         
         # i. ensure that wmin is low enough for bisection to work
         VF_min = self.incumbent_firm(wmin)[0]
-        VF_entrant_min = self.beta*np.dot(VF_min, self.nu) - self.ce  #present discounted value of a potential entrant
+        VF_entrant_min = (1-self.lambdaa)*self.beta*np.dot(VF_min, self.nu) - self.ce  #present discounted value of a potential entrant
         
         assert VF_entrant_min > 0, 'wmin is set too high.'
         
@@ -221,7 +219,7 @@ class HopenhaynV2:
             
         for i_pv in range(self.maxit):
             VF_max = self.incumbent_firm(wmax)[0]
-            PV_entrant_max = self.beta*np.dot(VF_max, self.nu) - self.ce  #present discounted value of a potential entrant
+            PV_entrant_max = (1-self.lambdaa)*self.beta*np.dot(VF_max, self.nu) - self.ce  #present discounted value of a potential entrant
             
             if PV_entrant_max < 0:
                 break
@@ -243,7 +241,7 @@ class HopenhaynV2:
             VF = self.incumbent_firm(wage_guess)[0]
         
             # iii. Free entry condition or present discounted value of a potential entrant. 
-            free_entry_cond = self.beta*np.dot(VF, self.nu) - self.ce
+            free_entry_cond = (1-self.lambdaa)*self.beta*np.dot(VF, self.nu) - self.ce
             
             # iv. check if free entry condition is satisfied (present discounted value of a potential entrant equals zero)
             if np.abs(free_entry_cond) < self.tol:
@@ -283,7 +281,7 @@ class HopenhaynV2:
         # b. fixed point iteration
         
         for it_d in range(self.maxit):
-            stat_dist_hat = (1-self.lambdaa)*np.dot(stat_dist_0, self.pi*self.pol_enter) + m * self.nu * self.pol_enter
+            stat_dist_hat = (1-self.lambdaa)*np.dot(stat_dist_0, self.pi*self.pol_continue) + m * self.nu * self.pol_continue
             dist = np.abs(stat_dist_hat - stat_dist_0).max()
             
             if dist < self.tol:
@@ -314,7 +312,7 @@ class HopenhaynV2:
         
         # b. Use the equilibrium wage to recover incumbent firm solution
         self.firm_profit, self.firm_output, self.pol_k, self.pol_n = self.static_profit_max(self.wage_ss)
-        self.VF, self.pol_enter = self.incumbent_firm(self.wage_ss)     
+        self.VF, self.pol_continue = self.incumbent_firm(self.wage_ss)     
         
         
         # c. Invariant (productivity) distribution with endogenous exit
@@ -354,14 +352,14 @@ class HopenhaynV2:
         
         self.average_firm_size = self.N_ss / np.sum(self.stat_dist)
         #np.dot(self.stat_dist_pdf, self.pol_n)  #alternative calculation
-        self.exit_rate = 1 - np.sum((1-self.lambdaa)*np.dot(self.pi.T, self.stat_dist_hat)*self.pol_enter)/np.sum(self.stat_dist_hat) 
+        self.exit_rate = 1 - np.sum((1-self.lambdaa)*np.dot(self.pi.T, self.stat_dist_hat)*self.pol_continue)/np.sum(self.stat_dist_hat) 
         #self.exit_rate_alt = self.m_star / np.sum(self.stat_dist)    #alternative calculation
         
         # h. plot
         
         if self.plott:
             
-            idx = np.searchsorted(self.pol_enter, 0, side='right') #producitivity threshold at which to exit
+            idx = np.searchsorted(self.pol_continue, 0, side='right') #producitivity threshold at which to exit
             self.exit_cutoff = self.grid_z[idx]  #exit threshold productivity value
             
             plt.plot(self.grid_z, self.VF)
