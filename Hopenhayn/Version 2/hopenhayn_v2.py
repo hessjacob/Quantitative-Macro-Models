@@ -2,7 +2,8 @@
 """
 Author: Jacob Hess
 
-Date: May 2021
+First Version: May 2021
+This Version: January 2022
 
 Description: This code embeds the standard neoclassical growth model into the firm dynamics model from Hopenhayn (1992) and solves for the stationary equilibrium. 
 There is a representative household who inelastically supplies labor and rents capital to firms. Firms are heterogenous in productivity and are subject to 
