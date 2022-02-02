@@ -3,7 +3,7 @@
 Author: Jacob Hess
 
 First Version: May 2021
-This Version: January 2022
+This Version: February 2022
 
 Description: This code embeds the standard neoclassical growth model into the firm dynamics model from Hopenhayn (1992) and solves for the stationary equilibrium. 
 There is a representative household who inelastically supplies labor and rents capital to firms. Firms are heterogenous in productivity and are subject to 
@@ -33,18 +33,10 @@ class HopenhaynV2:
     # 1. setup #
     ############
 
-    def __init__(self, cf = 1,              #fixed cost
-                       ce = 10,             #entry cost
-                       rho_z = 0.6,           #autocorrelation coefficient
-                       sigma_z = 0.2,         #std. dev. of shocks
-                       Nz = 20,                #number of discrete income states
-                       z_bar = 0,          #constant term in continuous income process (not the mean of the process)
-                       plott =1,              #select 1 to make plots
-                       ):
-        
+    def __init__(self, plott =1):             #select 1 to make plots
+    
         #parameters subject to changes
-        self.cf, self.ce, self.Nz, self.rho_z  = cf, ce, Nz, rho_z
-        self.sigma_z, self.z_bar, self.plott = sigma_z, z_bar, plott 
+        self.plott = plott
         
         self.setup_parameters()
         self.setup_grid()
@@ -61,6 +53,14 @@ class HopenhaynV2:
         self.lambdaa = 0.05       #exogenous exit rate
         self.psi = 0.5            #capital adjustment parameter
         self.xx = 1 - self.alpha - self.gamma   #for factor demand solution
+        self.cf = 1              #fixed cost
+        self.ce = 10             #entry cost
+        
+        # AR(1) productivity process
+        self.rho_z = 0.6            #autocorrelation coefficient
+        self.sigma_z = 0.2          #std. dev. of shocks
+        self.Nz = 20                #number of discrete income states
+        self.z_bar = 0              #constant term in continuous productivity process (not the mean of the process)
         
         # b. incumbent firm soluton  
         self.tol = 1e-8                         #difference tolerance
@@ -69,6 +69,7 @@ class HopenhaynV2:
         # c. hh solution
         self.interest_rate = 1/self.beta - 1
         self.rental_rate = self.interest_rate + self.delta
+        
         
     def setup_grid(self):
         
@@ -202,8 +203,8 @@ class HopenhaynV2:
         """
         Using the bisection method this function finds the unique equilibrium wage that clears markets and satisfies the free entry condition. 
         
-        In equilibrium the free entry condition (or the present discounted value of the potential entrant) is zero. The free entry condition is where the expected firm value over 
-        the initial productivity distribution equals the cost of entry (ce).
+        In equilibrium the free entry condition (or the present discounted value of the potential entrant) is zero. The free entry condition is 
+        where the expected firm value over the initial productivity distribution equals the cost of entry (ce).
         """
         
         # a. set up the wage interval
@@ -282,7 +283,7 @@ class HopenhaynV2:
         # b. fixed point iteration
         
         for it_d in range(self.maxit):
-            stat_dist_hat = (1-self.lambdaa)*np.dot(stat_dist_0, self.pi*self.pol_continue) + m * self.nu * self.pol_continue
+            stat_dist_hat = (1-self.lambdaa)*np.dot(stat_dist_0, self.pi)*self.pol_continue + m * self.nu 
             dist = np.abs(stat_dist_hat - stat_dist_0).max()
             
             if dist < self.tol:
@@ -324,12 +325,14 @@ class HopenhaynV2:
         # to solve m_star, This uses the condition that aggregate labor demand is equal to 1 = N_ss = m_star*np.dot(self.stat_dist_hat, self.pol_n)
         self.m_star = 1/np.dot(self.stat_dist_hat, self.pol_n)
         
+        
         # e. Rescale to get invariant (productivity) distribution (mass of plants)
         self.stat_dist = self.m_star * self.stat_dist_hat
         
         # invariant (productivity) distribution by percent
         self.stat_dist_pdf = self.stat_dist / np.sum(self.stat_dist)
         self.stat_dist_cdf = np.cumsum(self.stat_dist_pdf)
+        
         
         # f. calculate employment distributions
         self.dist_emp = (self.pol_n * self.stat_dist)
@@ -338,8 +341,8 @@ class HopenhaynV2:
         self.dist_emp_pdf = self.dist_emp / np.sum(self.dist_emp)
         self.dist_emp_cdf = np.cumsum(self.dist_emp_pdf)
         
-        # g. aggregate statistics
         
+        # g. aggregate statistics
         self.Y_ss = np.dot(self.firm_output, self.stat_dist)
         #self.Y_ss = np.sum(self.firm_output*self.stat_dist, axis=0) alternative way to calculate it
         self.Yfc_ss = np.dot(self.firm_output - self.cf, self.stat_dist)
