@@ -7,7 +7,7 @@ This Version: February 2022
 
 Description: This code embeds the standard neoclassical growth model into the firm dynamics model from Hopenhayn (1992) and solves for the stationary equilibrium. 
 There is a representative household who inelastically supplies labor and rents capital to firms. Firms are heterogenous in productivity and are subject to 
-idiosyncratic shocks each period and yhere is endogenous entry/exit which arises from the equilibrium solution. In addition, there are exogenous exit shocks which 
+idiosyncratic shocks each period and there is endogenous entry/exit which arises from the equilibrium solution. In addition, there are exogenous exit shocks which 
 I include to induce larger/more productive firms to exit as well. I calibrate the model to loosely replicate annual U.S. economy statistics. 
 
 Required packages: 
@@ -51,7 +51,6 @@ class HopenhaynV2:
         self.gamma = 0.85*2/3     #labor share
         self.delta = 0.08         #annual depreciation rate
         self.lambdaa = 0.05       #exogenous exit rate
-        self.psi = 0.5            #capital adjustment parameter
         self.xx = 1 - self.alpha - self.gamma   #for factor demand solution
         self.cf = 1              #fixed cost
         self.ce = 10             #entry cost
@@ -355,7 +354,7 @@ class HopenhaynV2:
         self.C_ss = self.Yfc_ss - self.delta*self.K_ss - self.ce*self.m_star
         
         self.average_firm_size = self.N_ss / np.sum(self.stat_dist)
-        #np.dot(self.stat_dist_pdf, self.pol_n)  #alternative calculation
+        #self.average_firm_size = np.dot(self.stat_dist_pdf, self.pol_n)  #alternative calculation
         self.exit_rate = 1 - np.sum((1-self.lambdaa)*np.dot(self.pi.T, self.stat_dist_hat)*self.pol_continue)/np.sum(self.stat_dist_hat) 
         #self.exit_rate_alt = self.m_star / np.sum(self.stat_dist)    #alternative calculation
         
