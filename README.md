@@ -93,14 +93,14 @@ There is ongoing exogenous and endogenous entry/exit in the steady state. Firms 
 
 **Version 3 -- Firm Dynamics (Hopenhayn 1992) and the Neoclassical Growth Model (firm owns capital)**
 
-* The code embeds the standard neoclassical growth model into Hopenhayn (1992) and solves for the stationary equilibrium in which there is continuous 
-entry/exit of firms. The difference with this and version 2 is that the firm owns the capital stock and makes the investment decision. The model is a simplified general equilbrium extension of Clementi and Palazzo (2016). I solve the household problem using value function iteration and approximate the stationary joint distribution of firms by fixed point iteration on the law of motion.
+* Firm dynamics model from Hopenhayn (1992) augmented to include capital accumulation and adjustment costs. Firms own their own capital stock and make investment decision subject to a convex and non-convex costs, making it different than version 2. The code solves for the stationary equilibrium with endogenous entry and exit. The model is in partial equilibrium as I do not define a goods market. The model is most similar to the stationary model in Clementi and Palazzo (2016). I solve the household problem using value function iteration and approximate the stationary joint distribution of firms by fixed point iteration on the law of motion.
 
-* The only friction in this economy is capital adjustment costs. Absent of these frictions the equilibrium allocations are efficient.
+* The only friction in this economy is capital adjustment costs. The equilibrium allocations are second-best and efficient from the social planner's point of view. Absent of these frictions the equilibrium allocations are first-best.
 
 *Detailed Description*. This version differs from the version 2 model as follows:
 1) The firm owns the capital stock and makes capital investment decisions. I allow for reversible investment (the firm can consume from its capital stock).
-2) There are now two state variables (tfp and capital). 
+2) With non-convex adjustment costs depending on the states it might be optimal to not invest at all (inaction).
+3) There are now two state variables (tfp and capital). 
 
 # Neoclassical Growth Model (Deterministic and Stochastic)
 Social planner solution for the neoclassical growth model with inelastic labor supply (which coincides with the competitive equilibrium solution). Unless otherwise stated all solution methods are avaliable for both the deterministic and stochastic case. The versions differ in how the social planner problem is solved, but obtain the same solution. See the RBC files which is this model but with elastic labor supply.  
