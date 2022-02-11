@@ -90,7 +90,7 @@ class HopenhaynV3:
         # c. capital grid
         self.Nk = 500       # number of capital grid points
         self.k_min = 0.01   # minimum capital level
-        self.k_max = 100    # maximum capital level
+        self.k_max = 40    # maximum capital level
         self.curv = 3       # grid curvature parameter
         
     def setup_grid(self) :
@@ -342,10 +342,10 @@ class HopenhaynV3:
         if self.plott:
             print("\nPlotting...")
             
-            idx = [0, 3, 6, 9]
+            idx = [0, 2, 4, 6, 9]
             for ii in idx :
                 plt.plot(self.grid_k, self.VF[ii,:])
-            plt.legend(['V(k,z$_{'+str(idx[0])+'}$)','V(k,z$_{'+str(idx[1])+'}$)', 'V(k,z$_{'+str(idx[2])+'}$)','V(k,z$_{'+str(idx[3])+'}$)'])
+            plt.legend(['V(k,z$_{'+str(idx[0])+'}$)','V(k,z$_{'+str(idx[1])+'}$)', 'V(k,z$_{'+str(idx[2])+'}$)','V(k,z$_{'+str(idx[3])+'}$)','V(k,z$_{'+str(idx[4])+'}$)'])
             plt.title('Incumbant Firm Value Function')
             plt.xlabel('Capital')
             #plt.savefig('vf_hopehaynv3.pdf')
@@ -354,7 +354,7 @@ class HopenhaynV3:
             for ii in idx :
                 plt.plot(self.grid_k, self.pol_kp[ii,:])
             plt.plot(self.grid_k, (1-self.delta)*self.grid_k,':')
-            plt.legend(["k'(k,z$_{"+str(idx[0])+"}$)","k'(k,z$_{"+str(idx[1])+"}$)", "k'(k,z$_{"+str(idx[2])+"}$)","k'(k,z$_{"+str(idx[3])+"}$)", "k(1-$\delta$)"])
+            plt.legend(["k'(k,z$_{"+str(idx[0])+"}$)","k'(k,z$_{"+str(idx[1])+"}$)", "k'(k,z$_{"+str(idx[2])+"}$)","k'(k,z$_{"+str(idx[3])+"}$)","k'(k,z$_{"+str(idx[4])+"}$)", "k(1-$\delta$)"])
             plt.title('Capital Next Period Policy Funciton')
             plt.xlabel('Capital')
             #plt.savefig('pol_k_hopehaynv3.pdf')
@@ -362,7 +362,7 @@ class HopenhaynV3:
             
             for ii in idx :
                 plt.plot(self.grid_k, self.pol_inv[ii,:])
-            plt.legend(['i(k,z$_{'+str(idx[0])+'}$)','i(k,z$_{'+str(idx[1])+'}$)', 'i(k,z$_{'+str(idx[2])+'}$)', 'i(k,z$_{'+str(idx[3])+'}$)'])
+            plt.legend(['i(k,z$_{'+str(idx[0])+'}$)','i(k,z$_{'+str(idx[1])+'}$)', 'i(k,z$_{'+str(idx[2])+'}$)', 'i(k,z$_{'+str(idx[3])+'}$)','i(k,z$_{'+str(idx[4])+'}$)'])
             plt.title("Investment: $k'(k,z)-(1-\delta)k$")
             plt.xlabel('Capital')
             #plt.savefig('pol_inv_hopehaynv3.pdf')
@@ -370,7 +370,7 @@ class HopenhaynV3:
             
             for ii in idx :
                 plt.plot(self.grid_k, self.pol_n[ii,:])
-            plt.legend(['n(k,z$_{'+str(idx[0])+'}$)','n(k,z$_{'+str(idx[1])+'}$)', 'n(k,z$_{'+str(idx[2])+'}$)', 'n(k,z$_{'+str(idx[3])+'}$)'])
+            plt.legend(['n(k,z$_{'+str(idx[0])+'}$)','n(k,z$_{'+str(idx[1])+'}$)', 'n(k,z$_{'+str(idx[2])+'}$)', 'n(k,z$_{'+str(idx[3])+'}$)', 'n(k,z$_{'+str(idx[4])+'}$)'])
             plt.title("Labor Demand Policy Function")
             plt.xlabel('Capital')
             #plt.savefig('pol_n_hopehaynv3.pdf')
@@ -421,6 +421,20 @@ class HopenhaynV3:
 def incumbent_firm(wage, params_vfi):
     """
     Value function iteration for the incumbent firm problem.
+    
+    *Input
+        - wage
+        - params_vfi: model parameters
+        
+    *Output VF, pol_kp, pol_n, pol_continue, pol_inv, firm_output, firm_profit, it   
+        - VF: Incumbent firm value function
+        - pol_kp: k prime aka firm's capital stock next period
+        - pol_n: labor demand
+        - pol_continue: policy function where when 1 firm continues and when 0 firm exits the market
+        - pol_inv: investment policy function, k'-(1-delta)k
+        - firm_output: production after plugging in pol_n for labor input
+        - firm_profit: per-period profits
+        - it: number of iterations
     """ 
 
     
@@ -527,16 +541,18 @@ def incumbent_firm(wage, params_vfi):
 def discrete_stationary_density(pol_kp, k_e, pol_continue, params_dist):
     """
     Discrete approximation of the density function. Approximates the stationary joint density through forward 
-    iteration and linear interpolation over a discretized state space. By default the code uses a finer grid than 
-    the one in the solution but one could use the same grid here. The algorithm is from Ch.7 in Heer and Maussner.
+    iteration over a discretized state space. The algorithm is from Ch.7 in Heer and Maussner.
     
     *Input
-        - pol_sav: savings policy function
-        - params_discrete: model parameters
+        - pol_kp: k prime aka firm's capital stock next period
+        - k_e: optimal level of capital for entrant firm
+        - pol_continue: policy function where when 1 firm continues and when 0 firm exits the market
+        - params_dist: model parameters
         
     *Output
         - stationary_pdf: joint stationary density function
         - it: number of iterations
+        - dist: supremum norm between stationary_pdf and previous iteration
     """
     
     # a. initialize
