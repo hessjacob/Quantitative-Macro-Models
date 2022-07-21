@@ -3,7 +3,7 @@
 Author: Jacob Hess
 
 First Version: May 2021
-This Version: February 2022
+This Version: July 2022
 
 Description: This is a firm dynamics model from Hopenhayn (1992) augmented to include capital accumulation and adjustment costs. Firms own their own capital 
 stock and make investment decision subject to a convex and non-convex costs. The code solves for the stationary equilibrium where entry/exit arises endogenously
@@ -219,7 +219,7 @@ class HopenhaynV3:
             VF_entrant = self.entrant_firm(VF)[0]   #value of the entrant
             
             t4=time.time()
-            print(f'Incumbent firm time elapsed: {t4-t3:.2f} seconds')
+            print(f'Entrant firm time elapsed: {t4-t3:.2f} seconds')
             
             
             #iv. calculate free entry condition and check if satisfied
@@ -438,7 +438,7 @@ def incumbent_firm(wage, params_vfi):
     """ 
 
     
-    #a. Initialize counters, initial guess, storage matriecs
+    #a. Initialize counters, initial guess, storage matrices
     
     alpha, beta, delta, gamma, cf, psi, xi, pi, grid_k, grid_z, maxit, tol = params_vfi
     
@@ -461,8 +461,8 @@ def incumbent_firm(wage, params_vfi):
     
     # b. iterate
     for it in range(maxit):
-        for iz in range(Nz):
-            for ik in prange(Nk):
+        for iz in prange(Nz):
+            for ik in range(Nk):
                 
                 pol_n[iz,ik] = ((grid_z[iz] * gamma) / wage)**(1/(1-gamma)) * grid_k[ik]**(alpha/(1-gamma))
                     
@@ -513,7 +513,7 @@ def incumbent_firm(wage, params_vfi):
                     
                 else: #exit
                     pol_kp[iz,ik] = 0
-                    pol_inv[iz,ik] = 0
+                    pol_inv[iz,ik] = -(1-delta) * grid_k[ik]
                     pol_continue[iz,ik] = 0
                     
                 
