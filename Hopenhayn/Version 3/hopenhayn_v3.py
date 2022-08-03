@@ -202,7 +202,7 @@ class HopenhaynV3:
             
             VF, _, _, _, _, _, _, it_vfi  = incumbent_firm(wage_guess, self.params_vfi)
             
-            if it_w < self.maxit-1:
+            if it_vfi < self.maxit-1:
                 print(f"Value function convergence in {it_vfi} iterations.")
             else : 
                 raise Exception("No value function convergence.")
@@ -252,7 +252,7 @@ class HopenhaynV3:
 
 
     #####################
-    # 3. Main function #
+    # 4. Main function #
     ####################
     
     def solve_model(self):
