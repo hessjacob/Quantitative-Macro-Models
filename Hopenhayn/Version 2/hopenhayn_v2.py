@@ -202,8 +202,8 @@ class HopenhaynV2:
         """
         Using the bisection method this function finds the unique equilibrium wage that clears markets and satisfies the free entry condition. 
         
-        In equilibrium the free entry condition (or the present discounted value of the potential entrant) is zero. The free entry condition is 
-        where the expected firm value over the initial productivity distribution equals the cost of entry (ce).
+        In a stationary equilibrium the free entry condition (present discounted firm value less entry cost) is zero. More precisely, this function
+        checks if the expected firm value over the initial productivity distribution less the cost of entry (ce) equals zero.
         """
         
         # a. set up the wage interval
@@ -320,8 +320,9 @@ class HopenhaynV2:
         self.stat_dist_hat = self.solve_invariant_distribution()
         
         
-        # d. Mass of entrants (m_star) in the ss equilibrium. Because labor is supplied inelastically we can use the labor market clearing condition
-        # to solve m_star, This uses the condition that aggregate labor demand is equal to 1 = N_ss = m_star*np.dot(self.stat_dist_hat, self.pol_n)
+        # d. Mass of entrants (m_star) in the ss equilibrium. The invariant distribution is linear in m_star: stat_dist_hat = m_star * stat_dist. 
+        # I asume that labor is supplied inelastically and I can use the labor market clearing condition
+        # to solve m_star: N_ss = 1 = m_star*np.dot(self.stat_dist_hat, self.pol_n) (see Restuccia and Rogerson 2008 or Ranasinghe 2014).
         self.m_star = 1/np.dot(self.stat_dist_hat, self.pol_n)
         
         
