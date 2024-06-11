@@ -27,10 +27,19 @@ Aknowledgements: I wrote the algorithms using the following resources :
     
 Required packages: 
     -- Packages from the anaconda distribution. (to install for free: https://www.anaconda.com/products/individual)
+    -- QuantEcon (to install: 'conda install quantecon')
+    
+NO LONGER REQUIRED (incompatible with newer versions of numba): 
     -- Interpolation from EconForge
        * optimized interpolation routines for python/numba
        * to install 'conda install -c conda-forge interpolation'
        * https://github.com/EconForge/interpolation.py
+
+Requirements file:
+    -- Accompanying requirements.txt contains the versions of the library and packages versions that I used.
+    -- Not required to use, but I recommend doing so if you either have trouble running this file or figures generated do not coincide with mine. 
+    -- In your termain run the following 
+        * pip install -r /your path/requirements.txt
 
 Note 1: If simulation tells you to increase grid size, increase self.a_max in function setup_parameters.
 Note 2: Be advised that by default there are many grid points which makes the eigenvector method quite slow (calculation up to 20 minutes using
@@ -43,10 +52,10 @@ import numpy as np
 from numba import njit, prange
 import quantecon as qe
 from scipy.stats import rv_discrete
-from interpolation import interp
+#from interpolation import interp
 import matplotlib.pyplot as plt
 import seaborn as sns
-plt.style.use('seaborn-whitegrid')
+sns.set(style='whitegrid')
 
 
 
@@ -174,8 +183,8 @@ class AiyagariVFI:
     def setup_discretization(self):
            
         # a. discretely approximate the continuous income process 
-        self.mc = qe.markov.approximation.rouwenhorst(self.Nz, self.z_bar, self.sigma_z, self.rho_z)
-        #self.mc = qe.markov.approximation.tauchen(self.rho_z, self.sigma_z, self.z_bar, 3, self.Nz)
+        self.mc = qe.markov.approximation.rouwenhorst(n=self.Nz, rho=self.rho_z, sigma=self.sigma_z, mu=self.z_bar)
+        #self.mc = qe.markov.approximation.tauchen(n=self.Nz, rho=self.rho_z, sigma=self.sigma_z, mu=self.z_bar, n_std=3)
     
         # b. transition matrix and states
         self.pi = self.mc.P
@@ -780,6 +789,10 @@ class AiyagariVFI:
 #########################
 # 1. Helper Functions  #
 ########################
+
+@njit
+def interp(x, y, x_vals):
+    return np.interp(x_vals, x, y)
 
 @njit
 def utility(c, sigma):
