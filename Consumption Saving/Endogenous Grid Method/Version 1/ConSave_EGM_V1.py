@@ -26,10 +26,19 @@ Aknowledgements: I wrote the algorithms using the following resources :
     
 Required packages: 
     -- Packages from the anaconda distribution. (to install for free: https://www.anaconda.com/products/individual)
+    -- QuantEcon (to install: 'conda install quantecon')
+    
+NO LONGER REQUIRED (incompatible with newer versions of numba): 
     -- Interpolation from EconForge
        * optimized interpolation routines for python/numba
        * to install 'conda install -c conda-forge interpolation'
        * https://github.com/EconForge/interpolation.py
+       
+Requirements file:
+    -- Accompanying requirements.txt contains the versions of the library and packages versions that I used.
+    -- Not required to use, but I recommend doing so if you either have trouble running this file or figures generated do not coincide with mine. 
+    -- In your termain run the following 
+        * pip install -r /your path/requirements.txt
 
 Note: If simulation tells you to increase grid size, increase self.sav_max in function setup_parameters.
 """
@@ -39,7 +48,7 @@ Note: If simulation tells you to increase grid size, increase self.sav_max in fu
 import time
 import numpy as np
 from numba import njit, prange
-from interpolation import interp
+#from interpolation import interp
 import matplotlib.pyplot as plt
 import seaborn as sns
 sns.set(style='whitegrid')
@@ -755,9 +764,16 @@ class ConSaveEGMsmall:
 # II. JIT Compiled Functions   #
 ###############################
 
+########################
+# 1. Helper Functions #
+#######################
+
+@njit
+def interp(x, y, x_vals):
+    return np.interp(x_vals, x, y)
 
 ####################
-# 1. Simulation   #
+# 2. Simulation   #
 ##################
 
 @njit(parallel=True)
@@ -893,7 +909,7 @@ def simulate_MarkovChain(pol_cons, pol_sav, params_sim):
 
 
 ###############################################################################
-# 2. Stationary Distribution: Discrete Approximation and Forward Iteration   #
+# 3. Stationary Distribution: Discrete Approximation and Forward Iteration   #
 ##############################################################################
 
 @njit
