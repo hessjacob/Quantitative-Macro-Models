@@ -17,6 +17,12 @@ Acknowledgements:
     
 Required packages: 
     -- Packages from the anaconda distribution. (to install for free: https://www.anaconda.com/products/individual
+
+Requirements file:
+    -- Accompanying requirements.txt contains the versions of the library and packages versions that I used.
+    -- Not required to use, but I recommend doing so if you either have trouble running this file or figures generated do not coincide with mine. 
+    -- In your termain run the following 
+        * pip install -r /your path/requirements.txt                                                 
 """
 
 
@@ -251,7 +257,7 @@ class ncgmVFIandINTERPOLATE:
             Tk = self.chebyshev_polynomial(roots_k, self.cheb_order)
             
             # iii. compute OLS
-            theta = la.lstsq(Tk, self.pol_kp, rcond=None)[0]
+            theta = np.linalg.lstsq(Tk, self.pol_kp, rcond=None)[0]
             
             # view approximation 
             

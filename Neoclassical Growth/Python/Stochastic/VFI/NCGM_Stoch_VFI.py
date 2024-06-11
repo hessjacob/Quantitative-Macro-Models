@@ -18,8 +18,13 @@ Acknowledgements:
 Required packages: 
     -- Packages from the anaconda distribution. (to install for free: https://www.anaconda.com/products/individual
     -- QuantEcon (to install: 'conda install quantecon')
-"""
 
+Requirements file:
+    -- Accompanying requirements.txt contains the versions of the library and packages versions that I used.
+    -- Not required to use, but I recommend doing so if you either have trouble running this file or figures generated do not coincide with mine. 
+    -- In your termain run the following 
+        * pip install -r /your path/requirements.txt
+"""
 
 
 import time
@@ -132,8 +137,8 @@ class ncgmVFI:
     def setup_markov(self):
         
         # a. discretely approximate the continuous income process 
-        self.mc = qe.markov.approximation.rouwenhorst(self.Nz, self.z_bar, self.sigma_z, self.rho_z)
-        #self.mc = qe.markov.approximation.tauchen(self.rho_z, self.sigma_u, self.z_bar, 3, self.Nz)
+        self.mc = qe.markov.approximation.rouwenhorst(n=self.Nz, rho=self.rho_z, sigma=self.sigma_z, mu=self.z_bar)
+        #self.mc = qe.markov.approximation.tauchen(n=self.Nz, rho=self.rho_z, sigma=self.sigma_z, mu=self.z_bar, n_std=3)
 
         # b. transition matrix and states
         self.pi = self.mc.P
